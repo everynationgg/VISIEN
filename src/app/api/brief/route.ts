@@ -77,6 +77,9 @@ export async function POST(request: NextRequest) {
       future_horizon: briefData.target_timeline
         ? `Launch Target: ${briefData.target_timeline}${briefData.future_horizon ? ` | Horizon: ${briefData.future_horizon}` : ''}`
         : (briefData.future_horizon || ''),
+      target_platform: briefData.target_platform || null,
+      payments_integrations: briefData.payments_integrations || null,
+      target_timeline: briefData.target_timeline || null,
       infrastructure_preference: briefData.infrastructure_preference || 'Unspecified',
       additional_notes: briefData.additional_notes || '',
       raw_json: briefData,
