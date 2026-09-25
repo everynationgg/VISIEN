@@ -1,0 +1,198 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400&display=swap');
+
+:root {
+  /* Warm cream & soft white foundations */
+  --bg-cream: #FAF7F2;
+  --bg-cream-soft: #F4EFEB;
+  --bg-cream-warm: #EFE8E1;
+  --surface-white: #FFFFFF;
+  --surface-translucent: rgba(255, 255, 255, 0.88);
+  --surface-glass: rgba(255, 255, 255, 0.72);
+
+  /* Electric violet accents */
+  --violet-primary: #7C3AED;
+  --violet-deep: #5B21B6;
+  --violet-glow: rgba(124, 58, 237, 0.35);
+  --violet-soft: #EDE9FE;
+  --violet-subtle: #F5F3FF;
+
+  /* Golden orange / molten lava accents */
+  --gold-primary: #F59E0B;
+  --gold-warm: #EA580C;
+  --gold-glow: rgba(245, 158, 11, 0.35);
+  --gold-soft: #FEF3C7;
+  --gold-subtle: #FFFBEB;
+
+  /* Refined typography & text colors */
+  --text-main: #1E1B18;
+  --text-secondary: #57534E;
+  --text-muted: #8C827A;
+  --text-inverse: #FFFFFF;
+
+  /* Structural lines & subtle shadows */
+  --border-subtle: rgba(120, 113, 108, 0.12);
+  --border-active: rgba(124, 58, 237, 0.3);
+  --shadow-sm: 0 2px 8px rgba(30, 27, 24, 0.04);
+  --shadow-md: 0 8px 24px rgba(30, 27, 24, 0.06);
+  --shadow-lg: 0 16px 40px rgba(124, 58, 237, 0.08);
+  --shadow-glow: 0 0 32px rgba(124, 58, 237, 0.18), 0 0 48px rgba(245, 158, 11, 0.15);
+
+  /* Radius standards */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  background-color: var(--bg-cream);
+  color: var(--text-main);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Atmospheric warm light glow in background */
+.visien-ambient-glow {
+  position: fixed;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.12) 0%, rgba(245, 158, 11, 0.09) 45%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glassmorphic card surface */
+.visien-card {
+  background: var(--surface-translucent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+}
+
+.visien-card:hover {
+  border-color: var(--border-active);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Primary illuminated button */
+.visien-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, var(--violet-primary) 0%, #6366F1 60%, var(--gold-warm) 100%);
+  color: var(--text-inverse);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.28);
+  transition: all var(--transition-fast);
+}
+
+.visien-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.38);
+}
+
+.visien-btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Secondary calm button */
+.visien-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 24px;
+  background: var(--surface-white);
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.visien-btn-secondary:hover {
+  background: var(--bg-cream-soft);
+  color: var(--text-main);
+  border-color: rgba(120, 113, 108, 0.25);
+}
+
+/* Tappable smart suggestion chip */
+.visien-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--surface-white);
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 500;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.visien-chip:hover {
+  background: var(--violet-subtle);
+  color: var(--violet-deep);
+  border-color: rgba(124, 58, 237, 0.3);
+  transform: translateY(-1px);
+}
+
+.visien-chip.active {
+  background: linear-gradient(135deg, var(--violet-soft) 0%, var(--gold-subtle) 100%);
+  color: var(--violet-deep);
+  border-color: var(--violet-primary);
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.15);
+}
+
+/* Custom smooth scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(140, 130, 122, 0.25);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 130, 122, 0.4);
+}
