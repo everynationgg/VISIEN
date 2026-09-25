@@ -36,20 +36,24 @@ export interface AppBrief {
   vision_summary: string;
   problem_statement: string;
   target_users: string;
-  moment_of_use: string;
-  first_screen_experience: string;
+  moment_of_use?: string;
+  first_screen_experience?: string;
   core_action: string;
-  expected_outcome: string;
+  expected_outcome?: string;
+  target_platform?: string;
+  payments_integrations?: string;
+  target_timeline?: string;
   emotional_ux_feel: string[];
   visual_direction: string;
   anti_patterns: string[];
-  business_impact: string;
+  business_impact?: string;
   current_workflow: string;
   v1_essential_features: string[];
-  future_horizon: string;
+  future_horizon?: string;
   infrastructure_preference: string;
   additional_notes?: string;
   raw_transcript_url?: string;
+  raw_json?: any;
   created_at: string;
 }
 

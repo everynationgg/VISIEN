@@ -161,7 +161,9 @@ export default function AdminDashboardPage() {
       `## 2. Core Problem Statement`,
       selectedBrief.problem_statement || 'Not specified',
       ``,
-      `## 3. Target Users & Moment of Use`,
+      `## 3. Platform & Target Users`,
+      `- **Target Platform:** ${selectedBrief.target_platform || selectedBrief.raw_json?.target_platform || 'Not specified'}`,
+      `- **Payments & Integrations:** ${selectedBrief.payments_integrations || selectedBrief.raw_json?.payments_integrations || 'Not specified'}`,
       `- **Target Users:** ${selectedBrief.target_users || 'Not specified'}`,
       `- **Moment of Use:** ${selectedBrief.moment_of_use || 'Not specified'}`,
       ``,
@@ -181,6 +183,7 @@ export default function AdminDashboardPage() {
       `## 7. Business & Infrastructure`,
       `- **Current Workflow:** ${selectedBrief.current_workflow || 'Not specified'}`,
       `- **Business Impact:** ${selectedBrief.business_impact || 'Not specified'}`,
+      `- **Launch Timeline:** ${selectedBrief.target_timeline || selectedBrief.raw_json?.target_timeline || 'Not specified'}`,
       `- **Future Horizon:** ${selectedBrief.future_horizon || 'Not specified'}`,
       `- **Infrastructure Preference:** ${selectedBrief.infrastructure_preference || 'ENGG Managed'}`,
       selectedBrief.additional_notes ? `\n## 8. Additional Notes\n${selectedBrief.additional_notes}` : '',
@@ -571,9 +574,15 @@ export default function AdminDashboardPage() {
                     </div>
 
                     <div className="brief-block">
-                      <h4>Target Users & Moment of Use</h4>
+                      <h4>Platform & Integrations</h4>
+                      <p><strong>Target Platform:</strong> {selectedBrief.target_platform || selectedBrief.raw_json?.target_platform || 'iOS/Android & Web'}</p>
+                      <p><strong>Payments & Integrations:</strong> {selectedBrief.payments_integrations || selectedBrief.raw_json?.payments_integrations || 'Not specified'}</p>
+                    </div>
+
+                    <div className="brief-block">
+                      <h4>Target Users & Core Journey</h4>
                       <p><strong>Users:</strong> {selectedBrief.target_users || 'Not specified'}</p>
-                      <p><strong>When:</strong> {selectedBrief.moment_of_use || 'Not specified'}</p>
+                      <p><strong>Core Journey:</strong> {selectedBrief.core_action || 'Not specified'}</p>
                     </div>
 
                     <div className="brief-block">
@@ -604,8 +613,9 @@ export default function AdminDashboardPage() {
                     </div>
 
                     <div className="brief-block">
-                      <h4>Infrastructure Preference</h4>
-                      <p>{selectedBrief.infrastructure_preference || 'Every Nation GG Managed'}</p>
+                      <h4>Timeline & Infrastructure</h4>
+                      <p><strong>Launch Timeline:</strong> {selectedBrief.target_timeline || selectedBrief.raw_json?.target_timeline || 'Not specified'}</p>
+                      <p><strong>Infrastructure Preference:</strong> {selectedBrief.infrastructure_preference || 'Every Nation GG Managed'}</p>
                     </div>
 
                     {selectedBrief.additional_notes && (

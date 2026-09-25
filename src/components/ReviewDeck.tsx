@@ -45,14 +45,18 @@ export const ReviewDeck: React.FC<ReviewDeckProps> = ({
           <h3 className="card-section-title">Core Vision & Problem</h3>
           <p className="card-text"><strong>Summary:</strong> {brief.vision_summary || 'N/A'}</p>
           <p className="card-text"><strong>Problem Solved:</strong> {brief.problem_statement || 'N/A'}</p>
+          {brief.current_workflow && (
+            <p className="card-text"><strong>Current Workflow:</strong> {brief.current_workflow}</p>
+          )}
         </div>
 
-        {/* Card 2: Users & Flow */}
+        {/* Card 2: Platform, Specs & User Journey */}
         <div className="visien-card review-card">
-          <h3 className="card-section-title">Users & Experience</h3>
+          <h3 className="card-section-title">Platform, Specs & Flow</h3>
+          <p className="card-text"><strong>Target Platform:</strong> {brief.target_platform || brief.raw_json?.target_platform || 'iOS/Android & Web'}</p>
+          <p className="card-text"><strong>Payments & Integrations:</strong> {brief.payments_integrations || brief.raw_json?.payments_integrations || 'Not specified'}</p>
           <p className="card-text"><strong>Target Users:</strong> {brief.target_users || 'N/A'}</p>
-          <p className="card-text"><strong>First Screen:</strong> {brief.first_screen_experience || 'N/A'}</p>
-          <p className="card-text"><strong>Core Action:</strong> {brief.core_action || 'N/A'}</p>
+          <p className="card-text"><strong>Core User Journey:</strong> {brief.core_action || 'N/A'}</p>
         </div>
 
         {/* Card 3: Look, Feel & Aesthetics */}
@@ -85,7 +89,12 @@ export const ReviewDeck: React.FC<ReviewDeckProps> = ({
           ) : (
             <p className="card-text">Essential features summarized for development.</p>
           )}
-          <p className="card-text" style={{ marginTop: '10px' }}>
+          {(brief.target_timeline || brief.raw_json?.target_timeline) && (
+            <p className="card-text" style={{ marginTop: '8px' }}>
+              <strong>Launch Timeline:</strong> {brief.target_timeline || brief.raw_json?.target_timeline}
+            </p>
+          )}
+          <p className="card-text" style={{ marginTop: '6px' }}>
             <strong>Infrastructure:</strong> {brief.infrastructure_preference || 'ENGG Managed'}
           </p>
         </div>

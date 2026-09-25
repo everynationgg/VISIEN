@@ -1,233 +1,148 @@
 import { QuestionDefinition } from './types';
 
 export const CHAPTERS = [
-  { id: 1, title: 'The Vision', subtitle: 'Understanding your idea & problem' },
-  { id: 2, title: 'The Experience', subtitle: 'Aesthetics, look & core actions' },
-  { id: 3, title: 'The Blueprint', subtitle: 'Workflows, V1 scope & infrastructure' },
+  { id: 1, title: 'Concept & Reality', subtitle: 'The idea, problem & core user flow' },
+  { id: 2, title: 'Experience & Specs', subtitle: 'Target platforms, payments & aesthetic vibe' },
+  { id: 3, title: 'Launch Blueprint', subtitle: 'V1 essentials, timeline & infrastructure' },
 ] as const;
 
 export const CORE_QUESTIONS: QuestionDefinition[] = [
-  // Chapter 1: The Vision
+  // Chapter 1: Concept & Reality
   {
-    id: 'app_concept',
+    id: 'concept_and_audience',
     chapter: 1,
-    chapterTitle: 'The Vision',
+    chapterTitle: 'Concept & Reality',
     number: 1,
-    title: 'Tell me about the app you have in mind.',
-    guidance: "Imagine you're explaining the app to someone who has never heard the idea before. What is it, and what would you like it to do?",
+    title: 'Tell me about the app you have in mind and who it is for.',
+    guidance: 'In your own words, what is the core idea of the app, and who do you picture actually opening and using it?',
     chips: [
-      'Customer-facing booking app',
+      'Customer booking & ordering app',
       'Community & membership portal',
       'E-commerce / shop experience',
-      'Internal team tool',
-      'Content & educational platform'
+      'Internal operations & team tool',
+      'Content & service platform'
     ]
   },
   {
-    id: 'problem',
+    id: 'problem_and_workflow',
     chapter: 1,
-    chapterTitle: 'The Vision',
+    chapterTitle: 'Concept & Reality',
     number: 2,
-    title: 'What problem do you want the app to solve?',
-    guidance: 'Think about something currently inconvenient, slow, confusing, expensive, repetitive, or missing.',
+    title: 'How are you or your users handling this today, and what is the biggest headache?',
+    guidance: 'Think about your current routine without this app—are you using spreadsheets, WhatsApp/Messenger, paper, or phone calls? Where do things get messy, slow, or frustrating?',
     chips: [
-      'Orders/bookings are too chaotic',
-      'Hard to keep users engaged',
-      'Manual repetitive paperwork',
-      'Information is scattered everywhere',
-      'No convenient mobile access'
+      'Orders & DMs get lost in Messenger / WhatsApp',
+      'Messy spreadsheets & manual inventory',
+      'Customers have no easy way to track progress',
+      'Manual paper forms & repetitive coordination',
+      'Existing generic tools are too bloated or clunky'
     ]
   },
   {
-    id: 'users',
+    id: 'core_user_journey',
     chapter: 1,
-    chapterTitle: 'The Vision',
+    chapterTitle: 'Concept & Reality',
     number: 3,
-    title: 'Who do you imagine using this app?',
-    guidance: 'Think about customers, employees, students, members, visitors, yourself, etc.',
+    title: 'Walk me through the main user journey—from opening the app to getting the result.',
+    guidance: 'If someone opens the app right now, what is the single most important action they take, and what should happen right after they complete it?',
     chips: [
-      'Paying customers & clients',
-      'Internal team / staff members',
-      'Younger mobile-first audience',
-      'Community members',
-      'Business owners & managers'
+      'Browse catalog → customize order → instant confirmation & tracking',
+      'Select service & date → book slot → calendar sync & reminder',
+      'Submit request / inquiry → admin notified → live status updates',
+      'Log in → view personal dashboard → access resources'
     ]
   },
+
+  // Chapter 2: Experience & Specs
   {
-    id: 'context_of_use',
-    chapter: 1,
-    chapterTitle: 'The Vision',
+    id: 'target_platform',
+    chapter: 2,
+    chapterTitle: 'Experience & Specs',
     number: 4,
-    title: 'When do you imagine someone opening the app?',
-    guidance: 'Think about the moment—what is happening immediately before they open it, and what are they trying to accomplish?',
+    title: 'Where should this app live?',
+    guidance: 'Think about how your audience will access it. Do they need an App Store download, a quick link in their mobile browser, or a desktop/tablet interface?',
     chips: [
-      'On-the-go during their daily routine',
-      'Right when they need to make a quick purchase',
-      'At work when updating project progress',
-      'During leisure or community browsing'
+      'Mobile App (iOS & Android App Stores)',
+      'Responsive Web App (Runs in any browser without download)',
+      'Both Web & Mobile App',
+      'Tablet / iPad in workshop or store counter',
+      'Desktop / Laptop dashboard for staff'
     ]
   },
-
-  // Chapter 2: The Experience
   {
-    id: 'first_screen',
+    id: 'payments_and_integrations',
     chapter: 2,
-    chapterTitle: 'The Experience',
+    chapterTitle: 'Experience & Specs',
     number: 5,
-    title: 'When they open the app, what would you want them to see first?',
-    guidance: 'Imagine the first 5 seconds—what information, action, or experience should immediately be in front of them?',
+    title: 'Does this app need to accept payments or connect with existing tools?',
+    guidance: 'Does money change hands inside the app? Does it need to connect to shipping couriers, inventory, Google Sheets, or social media?',
     chips: [
-      'Clean search & featured items',
-      'A warm personalized greeting & status',
-      'One prominent action button to begin',
-      'Feed of latest updates & activity'
+      'GCash, Maya & Online Card payments',
+      'Cash on Delivery / Bank transfer slip upload',
+      'Courier & shipping tracking (e.g. Lalamove, J&T)',
+      'Sync with Google Sheets or existing database',
+      'No payments needed (free or internal tool)'
     ]
   },
   {
-    id: 'core_action',
+    id: 'look_feel_inspiration',
     chapter: 2,
-    chapterTitle: 'The Experience',
+    chapterTitle: 'Experience & Specs',
     number: 6,
-    title: 'What is the most important thing you want someone to be able to do?',
-    guidance: 'If the app could do only one thing really well, what would it be?',
+    title: 'How should the app look and feel? Any aesthetic styles or apps you love?',
+    guidance: 'Think about colors, vibe (clean, bold, dark, playful, luxurious), and any apps you like—or styles you definitely want to avoid.',
     chips: [
-      'Browse & order in under 30 seconds',
-      'Book an appointment effortlessly',
-      'Connect & chat with staff or members',
-      'Track progress & receive updates'
-    ]
-  },
-  {
-    id: 'result_next_step',
-    chapter: 2,
-    chapterTitle: 'The Experience',
-    number: 7,
-    title: 'After they do that, what should happen?',
-    guidance: 'Think about the next step—confirmation, result, continuation, contact, payment, etc.',
-    chips: [
-      'Instant visual receipt / confirmation',
-      'Push notification & status tracker',
-      'Prompt to share or return soon',
-      'Handoff to an administrator'
-    ]
-  },
-  {
-    id: 'emotional_ux_feel',
-    chapter: 2,
-    chapterTitle: 'The Experience',
-    number: 8,
-    title: 'How do you want the app to feel when someone uses it?',
-    guidance: 'Choose what matches your vision or describe it in your own words.',
-    chips: [
-      'Light & simple',
-      'Fast & energetic',
-      'Premium & sophisticated',
-      'Playful & welcoming',
-      'Calm & trustworthy',
-      'Powerful & professional'
-    ]
-  },
-  {
-    id: 'visual_direction',
-    chapter: 2,
-    chapterTitle: 'The Experience',
-    number: 9,
-    title: 'What do you imagine the app looking like?',
-    guidance: 'Think about colors, shapes, typography, imagery, animations, layout, atmosphere, and apps you love.',
-    chips: [
-      'Warm minimal & airy cream/white',
-      'Bold vibrant colors with subtle glow',
-      'Sleek modern cards with micro-animations',
-      'High-contrast clean typography'
-    ]
-  },
-  {
-    id: 'anti_patterns',
-    chapter: 2,
-    chapterTitle: 'The Experience',
-    number: 10,
-    title: 'What do you definitely NOT want it to look or feel like?',
-    guidance: 'What would turn you or your users off?',
-    chips: [
-      'Too corporate & sterile',
-      'Cluttered & confusing',
-      'Childish',
-      'Dark & intimidating',
-      'Flashy / gimmicky',
-      'Outdated & slow'
+      'Warm minimal, clean & airy',
+      'Sleek dark mode with modern glowing accents',
+      'Bold, fast & energetic',
+      'Premium, high-end & trustworthy',
+      'Avoid: Cluttered, sterile corporate, or outdated look'
     ]
   },
 
-  // Chapter 3: The Blueprint
+  // Chapter 3: Launch Blueprint
   {
-    id: 'business_relationship',
+    id: 'v1_launch_essentials',
     chapter: 3,
-    chapterTitle: 'The Blueprint',
-    number: 11,
-    title: 'How would this app fit into your business or organization?',
-    guidance: 'Think about what changes for you, your employees, your customers, or your operations.',
+    chapterTitle: 'Launch Blueprint',
+    number: 7,
+    title: 'What absolutely has to be in Version 1 for the launch to be a success?',
+    guidance: 'Focus on the bare essentials that make the app genuinely useful on Day 1 without overcomplicating things.',
     chips: [
-      'Saves hours of manual coordination daily',
-      'Opens a direct new revenue stream',
-      'Elevates our brand reputation',
-      'Centralizes customer relationships'
+      'Customer ordering & automated confirmation',
+      'Admin dashboard to manage orders & status',
+      'User login & saved order history',
+      'Automated SMS / email / chat notifications',
+      'Simple product or service catalog'
     ]
   },
   {
-    id: 'current_process',
+    id: 'timeline_and_horizon',
     chapter: 3,
-    chapterTitle: 'The Blueprint',
-    number: 12,
-    title: 'How do you handle this today?',
-    guidance: 'How do you currently run things without this app?',
+    chapterTitle: 'Launch Blueprint',
+    number: 8,
+    title: 'When are you hoping to launch, and if this succeeds, what is your long-term vision?',
+    guidance: 'Do you have an upcoming target date or season in mind? And down the road, where could this app grow?',
     chips: [
-      'Messenger / WhatsApp DMs',
-      'Spreadsheets & manual notes',
-      'Phone calls',
-      'Paper forms',
-      'Another generic app that is frustrating'
-    ]
-  },
-  {
-    id: 'v1_requirements',
-    chapter: 3,
-    chapterTitle: 'The Blueprint',
-    number: 13,
-    title: 'What absolutely needs to be in the first version?',
-    guidance: 'Think about the essential features that would make the first version genuinely useful without bloating the scope.',
-    chips: [
-      'User auth & basic profile',
-      'Core ordering / booking flow',
-      'Simple admin view for me to manage it',
-      'Automated email/chat notifications'
-    ]
-  },
-  {
-    id: 'future_vision',
-    chapter: 3,
-    chapterTitle: 'The Blueprint',
-    number: 14,
-    title: 'If the app succeeds, what would you eventually want it to become?',
-    guidance: 'Think beyond the first version and imagine where you would like the idea to go.',
-    chips: [
-      'Full multi-location scale',
-      'AI assistant built into the app',
-      'Public app store launch with subscriptions',
-      'Complete ecosystem with client portal'
+      'As soon as possible (within 4–6 weeks)',
+      'Targeting next 2–3 months',
+      'Flexible timeline — focus on getting it right',
+      'Future: Scale to multi-branch & public subscriptions',
+      'Future: Built-in AI assistant & automated dispatch'
     ]
   },
   {
     id: 'infrastructure_preference',
     chapter: 3,
-    chapterTitle: 'The Blueprint',
-    number: 15,
-    title: 'How would you prefer your app’s technical infrastructure to be managed?',
-    guidance: 'This is for planning only—you are not purchasing anything right now. We simply want to understand how you would like hosting, databases, and services handled.',
+    chapterTitle: 'Launch Blueprint',
+    number: 9,
+    title: "How would you prefer your app's technical infrastructure and maintenance to be managed?",
+    guidance: "This is for planning only—you aren't purchasing anything now. We just want to know how you prefer hosting, databases, and accounts to be handled.",
     chips: [
-      'Every Nation GG will manage them for me',
-      'I will provide my own accounts & ownership',
-      'A combination of both',
-      "I'm not sure yet — I'd like ENGG to recommend"
+      'Every Nation GG manages hosting, databases & updates',
+      'I prefer my own developer accounts (Apple, Google, AWS/Supabase)',
+      'Hybrid: ENGG builds it, then guides our team on handover',
+      "I'm not sure yet — recommend the best path for our stage"
     ]
   }
 ];

@@ -61,12 +61,20 @@ create table if not exists public.app_briefs (
   business_impact text not null,
   current_workflow text not null,
   v1_essential_features text[] default '{}',
-  future_horizon text not null,
+  future_horizon text not null default '',
+  target_platform text,
+  payments_integrations text,
+  target_timeline text,
   infrastructure_preference text not null,
   additional_notes text,
   raw_json jsonb,
   created_at timestamptz not null default now()
 );
+
+-- Migration helpers if table already exists:
+-- alter table public.app_briefs add column if not exists target_platform text;
+-- alter table public.app_briefs add column if not exists payments_integrations text;
+-- alter table public.app_briefs add column if not exists target_timeline text;
 
 create index if not exists idx_app_briefs_session_id on public.app_briefs(session_id);
 

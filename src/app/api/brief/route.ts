@@ -60,17 +60,23 @@ export async function POST(request: NextRequest) {
       vision_summary: briefData.vision_summary || '',
       problem_statement: briefData.problem_statement || '',
       target_users: briefData.target_users || '',
-      moment_of_use: briefData.moment_of_use || '',
+      moment_of_use: briefData.target_platform
+        ? `Platform: ${briefData.target_platform}${briefData.moment_of_use ? ` | ${briefData.moment_of_use}` : ''}`
+        : (briefData.moment_of_use || ''),
       first_screen_experience: briefData.first_screen_experience || '',
       core_action: briefData.core_action || '',
       expected_outcome: briefData.expected_outcome || '',
       emotional_ux_feel: briefData.emotional_ux_feel || [],
       visual_direction: briefData.visual_direction || '',
       anti_patterns: briefData.anti_patterns || [],
-      business_impact: briefData.business_impact || '',
+      business_impact: briefData.payments_integrations
+        ? `Payments & Integrations: ${briefData.payments_integrations}${briefData.business_impact ? ` | ${briefData.business_impact}` : ''}`
+        : (briefData.business_impact || ''),
       current_workflow: briefData.current_workflow || '',
       v1_essential_features: briefData.v1_essential_features || [],
-      future_horizon: briefData.future_horizon || '',
+      future_horizon: briefData.target_timeline
+        ? `Launch Target: ${briefData.target_timeline}${briefData.future_horizon ? ` | Horizon: ${briefData.future_horizon}` : ''}`
+        : (briefData.future_horizon || ''),
       infrastructure_preference: briefData.infrastructure_preference || 'Unspecified',
       additional_notes: briefData.additional_notes || '',
       raw_json: briefData,
