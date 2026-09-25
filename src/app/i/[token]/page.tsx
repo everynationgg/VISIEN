@@ -78,7 +78,11 @@ export default function DiscoverySessionPage() {
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<any>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioStreamRef = useRef<MediaStream | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isTranscribingAudio, setIsTranscribingAudio] = useState(false);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -129,7 +133,7 @@ export default function DiscoverySessionPage() {
     loadSession();
   }, [token]);
 
-  // Cleanup voice recognition on unmount
+  // Cleanup voice recognition & audio stream on unmount
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
@@ -137,96 +141,149 @@ export default function DiscoverySessionPage() {
           recognitionRef.current.abort();
         } catch (e) {}
       }
+      if (audioStreamRef.current) {
+        try {
+          audioStreamRef.current.getTracks().forEach((t) => t.stop());
+        } catch (e) {}
+      }
     };
   }, []);
 
   const toggleListening = async () => {
-    // If currently listening, stop it
+    // If currently recording/listening, STOP and transcribe!
     if (isListening) {
+      setIsListening(false);
+
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
         } catch (e) {}
       }
-      setIsListening(false);
-      inputRef.current?.focus();
-      return;
-    }
 
-    // 1. Check for Web Speech API support
-    const SpeechRecognition =
-      typeof window !== 'undefined' &&
-      ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
-
-    if (!SpeechRecognition) {
-      alert(
-        'Voice dictation is supported in Google Chrome, Microsoft Edge, and Safari. Please use one of these browsers for voice input.'
-      );
-      return;
-    }
-
-    // 2. Explicitly request microphone access via getUserMedia to trigger the browser permission prompt
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Stop audio tracks immediately once permission is verified
-        stream.getTracks().forEach((track) => track.stop());
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (e) {}
       }
-    } catch (permError: any) {
-      console.warn('Microphone permission error:', permError);
-      alert(
-        'Microphone access was denied or not found. Please click the camera/lock icon in your browser address bar to allow microphone access.'
-      );
       return;
     }
 
-    // 3. Instantiate and start SpeechRecognition
+    // START recording
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Microphone recording is not supported in this browser. Please use Google Chrome or Microsoft Edge.');
+      return;
+    }
+
     try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
+      // 1. Request microphone access - browser icon turns ON and stays ON!
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamRef.current = stream;
+      audioChunksRef.current = [];
 
-      let lastFinal = '';
+      // Determine supported mime type
+      let mimeType = 'audio/webm';
+      if (typeof MediaRecorder !== 'undefined') {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          mimeType = 'audio/ogg';
+        }
+      }
 
-      recognition.onstart = () => {
-        setIsListening(true);
+      const recorder = new MediaRecorder(stream, { mimeType: mimeType || undefined });
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
 
-      recognition.onresult = (event: any) => {
-        let interimText = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const trans = event.results[i][0]?.transcript || '';
-          if (event.results[i].isFinal) {
-            lastFinal += (lastFinal ? ' ' : '') + trans;
-          } else {
-            interimText += trans;
+      recorder.onstop = async () => {
+        // Release audio stream - browser mic icon disappears
+        if (audioStreamRef.current) {
+          try {
+            audioStreamRef.current.getTracks().forEach((track) => track.stop());
+          } catch (e) {}
+          audioStreamRef.current = null;
+        }
+
+        const chunks = audioChunksRef.current;
+        if (chunks.length === 0) return;
+
+        const audioBlob = new Blob(chunks, { type: mimeType });
+
+        // If recording was very short (< 200 bytes), skip
+        if (audioBlob.size < 200) return;
+
+        setIsTranscribingAudio(true);
+        try {
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.webm');
+          const res = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+          if (data.transcript && data.transcript.trim()) {
+            setInputText((prev) => {
+              const cleaned = data.transcript.trim();
+              return prev ? `${prev} ${cleaned}` : cleaned;
+            });
           }
-        }
-        const full = (lastFinal + (interimText ? ' ' + interimText : '')).trim();
-        if (full) {
-          setInputText(full);
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          alert('Microphone access was denied. Please allow microphone access in your browser settings.');
+        } catch (transcribeErr) {
+          console.error('Audio transcription error:', transcribeErr);
+        } finally {
+          setIsTranscribingAudio(false);
+          setTimeout(() => inputRef.current?.focus(), 50);
         }
       };
 
-      recognition.onend = () => {
-        setIsListening(false);
-        setTimeout(() => inputRef.current?.focus(), 100);
-      };
+      // Also start Web Speech in parallel for live interim preview
+      const SpeechRecognition =
+        typeof window !== 'undefined' &&
+        ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (err: any) {
-      console.error('Error starting speech recognition:', err);
+      if (SpeechRecognition) {
+        try {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = 'en-US';
+
+          recognition.onresult = (event: any) => {
+            let fullText = '';
+            for (let i = 0; i < event.results.length; i++) {
+              fullText += event.results[i][0]?.transcript || '';
+            }
+            if (fullText.trim()) {
+              setInputText(fullText.trim());
+            }
+          };
+
+          recognition.onerror = (e: any) => {
+            console.warn('Live SpeechRecognition notice:', e.error);
+          };
+
+          recognitionRef.current = recognition;
+          recognition.start();
+        } catch (speechErr) {
+          console.warn('SpeechRecognition unavailable, MediaRecorder active:', speechErr);
+        }
+      }
+
+      recorder.start(200);
+      setIsListening(true);
+    } catch (permError: any) {
+      console.error('Microphone access denied:', permError);
       setIsListening(false);
+      alert(
+        'Microphone permission was not allowed. Please click the camera/lock icon in your browser address bar to allow microphone access.'
+      );
     }
   };
 
@@ -427,11 +484,9 @@ export default function DiscoverySessionPage() {
   if (loading) {
     return (
       <div className="discovery-fullscreen">
-        <EnosOrb state="thinking" size={110} />
-        <p className="loading-text">Connecting with ENOS...</p>
+        <EnosOrb state="thinking" size={100} />
         <style jsx>{`
           .discovery-fullscreen { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100dvh; }
-          .loading-text { margin-top:20px; font-size:15px; color:var(--text-secondary); font-weight:500; }
         `}</style>
       </div>
     );
@@ -618,18 +673,31 @@ export default function DiscoverySessionPage() {
         <div className="input-bar">
           <button
             type="button"
-            className={`voice-btn ${isListening ? 'listening' : ''}`}
+            className={`voice-btn ${isListening ? 'listening' : ''} ${isTranscribingAudio ? 'transcribing' : ''}`}
             onClick={toggleListening}
-            title="Voice input"
+            title={isListening ? 'Stop recording and transcribe' : 'Start voice input'}
+            disabled={isTranscribingAudio}
           >
-            {isListening ? <MicOff size={18} color="var(--gold-warm)" /> : <Mic size={18} />}
+            {isTranscribingAudio ? (
+              <span className="transcribing-dot" />
+            ) : isListening ? (
+              <MicOff size={18} color="var(--gold-warm)" />
+            ) : (
+              <Mic size={18} />
+            )}
           </button>
 
           <input
             ref={inputRef}
             type="text"
             className="chat-input"
-            placeholder={isListening ? 'Listening... Speak into your mic' : 'Type your answer...'}
+            placeholder={
+              isTranscribingAudio
+                ? 'Transcribing audio with Gemini...'
+                : isListening
+                ? 'Listening... Click mic again when done'
+                : 'Type your answer...'
+            }
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => {
@@ -797,6 +865,24 @@ export default function DiscoverySessionPage() {
           background: var(--gold-soft);
           color: var(--gold-warm);
           animation: mic-pulse 1.5s infinite;
+        }
+
+        .voice-btn.transcribing {
+          border-color: var(--violet-primary);
+          background: var(--violet-soft);
+        }
+
+        .transcribing-dot {
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          border: 2px solid var(--violet-primary);
+          border-top-color: transparent;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
 
         @keyframes mic-pulse {
