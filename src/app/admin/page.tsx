@@ -444,13 +444,13 @@ export default function AdminDashboardPage() {
               </form>
             ) : (
               <div className="created-token-view">
-                <p className="success-label">🎉 Session Created!</p>
+                <p className="success-label">🎉 Session Code Ready!</p>
 
                 <div className="code-display-card">
-                  <span className="code-badge-label">SESSION ACCESS CODE</span>
+                  <span className="code-badge-label">SESSION CODE</span>
                   <div className="code-number-display">{createdToken}</div>
                   <p className="code-subtext">
-                    Clients can simply go to your site and enter this 6-digit code.
+                    Give this 6-digit code to your client to enter on your homepage.
                   </p>
                 </div>
 
@@ -479,16 +479,7 @@ export default function AdminDashboardPage() {
                     }}
                   >
                     {copiedMsg ? <Check size={15} /> : <MessageSquare size={15} />}
-                    <span>{copiedMsg ? 'Invite Text Copied!' : 'Copy Invitation Message'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="visien-btn-secondary copy-link-btn"
-                    onClick={() => copyToClipboard(`${getBaseUrl()}/i/${createdToken}`)}
-                  >
-                    {copiedToken ? <Check size={15} /> : <ExternalLink size={15} />}
-                    <span>{copiedToken ? 'Link Copied!' : 'Copy Direct Link'}</span>
+                    <span>{copiedMsg ? 'Message Copied!' : 'Copy Invitation Message'}</span>
                   </button>
 
                   <button
