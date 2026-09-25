@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     const nextIndex = aiResponse.nextQuestionIndex;
     const nextQ = CORE_QUESTIONS[nextIndex];
     const newChapter = nextQ ? nextQ.chapter : 3;
-    const isFinished = nextIndex >= CORE_QUESTIONS.length;
+    const isFinished = nextIndex >= CORE_QUESTIONS.length || !!aiResponse.isFinished;
 
     await supabase
       .from('sessions')

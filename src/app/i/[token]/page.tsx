@@ -8,7 +8,7 @@ import { SuggestionChips } from '@/components/SuggestionChips';
 import { ReviewDeck } from '@/components/ReviewDeck';
 import { CORE_QUESTIONS } from '@/lib/questions';
 import { Session, Message, AppBrief } from '@/lib/types';
-import { Send, Mic, MicOff, ArrowRight, CheckCircle2, Copy, Check } from 'lucide-react';
+import { Send, Mic, MicOff, ArrowRight, CheckCircle2, Copy, Check, Sparkles } from 'lucide-react';
 
 // Typewriter hook: animates text character by character
 function useTypewriter(text: string, speed: number = 18) {
@@ -68,6 +68,7 @@ export default function DiscoverySessionPage() {
   const [isGeneratingBrief, setIsGeneratingBrief] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [hasExited, setHasExited] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   // Onboarding step
   const [onboardingStep, setOnboardingStep] = useState<'name' | 'consent' | 'chat'>('name');
@@ -354,7 +355,7 @@ export default function DiscoverySessionPage() {
   };
 
   // Trigger App Brief Synthesis
-  const triggerReviewSynthesis = useCallback(async () => {
+  const triggerReviewSynthesis = useCallback(async (customNotice?: string) => {
     if (isGeneratingBrief) return;
     setIsGeneratingBrief(true);
     setOrbState('thinking');
@@ -364,7 +365,7 @@ export default function DiscoverySessionPage() {
       id: `enos-briefing-${Date.now()}`,
       session_id: session?.id || '',
       role: 'enos',
-      content: `That covers everything I needed to know. Give me a moment while I put together what I understood about your app vision...`,
+      content: customNotice || `That covers everything I needed to know. Give me a moment while I put together what I understood about your app vision...`,
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, briefingMsg]);
@@ -389,6 +390,14 @@ export default function DiscoverySessionPage() {
       setIsGeneratingBrief(false);
     }
   }, [token, session?.id, isGeneratingBrief]);
+
+  // Early Exit & Summarize
+  const handleEarlyExit = () => {
+    setShowEndConfirm(false);
+    triggerReviewSynthesis(
+      `Understood! Wrapping up our discovery session right here. Give me a moment while I synthesize everything you've shared so far into your App Vision...`
+    );
+  };
 
   // Send Message
   const handleSendMessage = async (textToSend?: string) => {
@@ -617,13 +626,57 @@ export default function DiscoverySessionPage() {
   return (
     <div className="chat-layout">
       <header className="chat-header">
-        <EnosOrb state={orbState} size={60} />
-        <ChapterProgress
-          currentChapter={(session?.current_chapter as any) || 1}
-          currentQuestionIndex={currentQIndex}
-          totalQuestions={CORE_QUESTIONS.length}
-        />
+        <EnosOrb state={orbState} size={48} />
+        <div className="header-progress-wrap">
+          <ChapterProgress
+            currentChapter={(session?.current_chapter as any) || 1}
+            currentQuestionIndex={currentQIndex}
+            totalQuestions={CORE_QUESTIONS.length}
+          />
+        </div>
+        <button
+          type="button"
+          className="end-chat-header-btn"
+          onClick={() => setShowEndConfirm(true)}
+          disabled={isSending || isGeneratingBrief || messages.filter((m) => m.role === 'client').length === 0}
+          title="End conversation early and generate brief"
+        >
+          <Sparkles size={13} />
+          <span>End Chat</span>
+        </button>
       </header>
+
+      {/* Confirmation Modal for Ending Early */}
+      {showEndConfirm && (
+        <div className="end-confirm-overlay" onClick={() => setShowEndConfirm(false)}>
+          <div className="end-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="end-confirm-icon-wrap">
+              <Sparkles size={24} color="var(--violet-primary)" />
+            </div>
+            <h3 className="end-confirm-title">Finish Discovery Early?</h3>
+            <p className="end-confirm-desc">
+              Ready to wrap up? ENOS will synthesize everything you&apos;ve shared so far into your App Vision brief right now.
+            </p>
+            <div className="end-confirm-actions">
+              <button
+                type="button"
+                className="end-confirm-submit-btn"
+                onClick={handleEarlyExit}
+              >
+                <Sparkles size={15} />
+                <span>Finish &amp; Summarize Now</span>
+              </button>
+              <button
+                type="button"
+                className="end-confirm-cancel-btn"
+                onClick={() => setShowEndConfirm(false)}
+              >
+                Keep Chatting
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="messages-feed">
         {messages.map((msg) => (
@@ -742,6 +795,153 @@ export default function DiscoverySessionPage() {
           display: flex;
           align-items: center;
           gap: 8px;
+        }
+
+        .header-progress-wrap {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .header-progress-wrap :global(.chapter-progress-container) {
+          padding: 2px 4px;
+        }
+
+        .end-chat-header-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 6px 12px;
+          border-radius: var(--radius-full);
+          border: 1px solid rgba(124, 58, 237, 0.25);
+          background: rgba(124, 58, 237, 0.08);
+          color: var(--violet-deep);
+          font-size: 12.5px;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.18s ease;
+          flex-shrink: 0;
+        }
+
+        .end-chat-header-btn:hover:not(:disabled) {
+          background: var(--violet-primary);
+          color: #fff;
+          border-color: var(--violet-primary);
+          box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+        }
+
+        .end-chat-header-btn:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+          border-color: var(--border-subtle);
+          background: transparent;
+          color: var(--text-muted);
+        }
+
+        .end-confirm-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.48);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          z-index: 100;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          animation: fadeIn 0.2s ease-out;
+        }
+
+        .end-confirm-modal {
+          background: #FFF;
+          border-radius: var(--radius-lg);
+          max-width: 380px;
+          width: 100%;
+          padding: 24px;
+          text-align: center;
+          box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.18);
+          border: 1px solid var(--border-subtle);
+          animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .end-confirm-icon-wrap {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: var(--violet-soft);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 14px;
+        }
+
+        .end-confirm-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: var(--text-main);
+          margin-bottom: 8px;
+        }
+
+        .end-confirm-desc {
+          font-size: 13.5px;
+          color: var(--text-secondary);
+          line-height: 1.5;
+          margin-bottom: 20px;
+        }
+
+        .end-confirm-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .end-confirm-submit-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          padding: 11px 16px;
+          background: var(--violet-primary);
+          color: #fff;
+          border: none;
+          border-radius: var(--radius-md);
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .end-confirm-submit-btn:hover {
+          background: var(--violet-deep);
+        }
+
+        .end-confirm-cancel-btn {
+          width: 100%;
+          padding: 10px 16px;
+          background: transparent;
+          color: var(--text-secondary);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+          font-size: 13.5px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .end-confirm-cancel-btn:hover {
+          background: var(--surface-cream);
+          color: var(--text-main);
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes scaleUp {
+          from { transform: scale(0.94); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
         }
 
         .messages-feed {

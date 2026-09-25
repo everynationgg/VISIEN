@@ -69,6 +69,7 @@ export interface ChatTurnResponse {
   isFollowUp: boolean;
   advanceToNextQuestion: boolean;
   nextQuestionIndex: number;
+  isFinished?: boolean;
 }
 
 /**
@@ -79,6 +80,22 @@ export async function generateEnosResponse(
 ): Promise<ChatTurnResponse> {
   const currentQ = CORE_QUESTIONS[context.currentQuestionIndex];
   const nextQ = CORE_QUESTIONS[context.currentQuestionIndex + 1];
+
+  // 1. Detect if client explicitly wants to end/wrap up the chat
+  const isEndSignal =
+    /(end (this|the)? (chat|session|call)|want to end|end it now|wrap (it|things)? up|can we end|stop (chat|session)?|finish now|let'?s (end|finish|stop)|close (chat|session)|exit (chat|session)?|no goal here)/i.test(
+      context.latestClientAnswer.trim()
+    );
+
+  if (isEndSignal) {
+    return {
+      message: `Understood! We'll wrap things up right here. Thank you for your time and thoughts—let me synthesize everything we've discussed into your App Vision now.`,
+      isFollowUp: false,
+      advanceToNextQuestion: false,
+      nextQuestionIndex: context.currentQuestionIndex,
+      isFinished: true,
+    };
+  }
 
   const model = genAI.getGenerativeModel({
     model: ENOS_MODEL,
@@ -101,7 +118,13 @@ export async function generateEnosResponse(
   const isOffTopic = /jollibee|mcdo|mcdonald|burger|pizza|food|hungry|eat/i.test(context.latestClientAnswer) ||
     /^(do what|huh\??|what\??|i don'?t (know|understand)|confused)$/i.test(context.latestClientAnswer.trim());
 
-  const mustAdvance = context.followUpCountForCurrentQuestion >= 2 || isSkipSignal;
+  const isMetaQuestion =
+    /^(hello|hi|hey|test|testing|does this work|is this working)\b/i.test(context.latestClientAnswer.trim()) ||
+    /(speak|understand|intindi|tagalog|english|language|who are you|what are you|si enos ka ba|chapters progress|progress to|counter|why did)/i.test(
+      context.latestClientAnswer
+    );
+
+  const mustAdvance = (context.followUpCountForCurrentQuestion >= 2 && !isMetaQuestion) || isSkipSignal;
 
   const fullPrompt = `${enosSystemInstruction}
 
@@ -115,23 +138,21 @@ ${historyText}
 CLIENT JUST SAID: "${context.latestClientAnswer}"
 
 SITUATION FLAGS:
+- Client asking meta/system/language question: ${isMetaQuestion ? 'YES → DO NOT ADVANCE! Answer their question warmly and stay on CURRENT QUESTION #' + (currentQ?.number || 1) : 'NO'}
 - Skip/next signal detected: ${isSkipSignal ? 'YES → Advance now, ask next question' : 'NO'}
-- Off-topic detected: ${isOffTopic ? 'YES → Acknowledge briefly and warmly redirect' : 'NO'}
+- Off-topic detected: ${isOffTopic ? 'YES → Acknowledge briefly and warmly redirect to CURRENT QUESTION' : 'NO'}
 - Follow-up count: ${context.followUpCountForCurrentQuestion}/2 ${mustAdvance ? '→ MAX REACHED, must advance' : ''}
 
 NEXT QUESTION IF ADVANCING: #${nextQ?.number ?? 'FINAL'}: "${nextQ?.title ?? 'That covers everything — let me compile your App Vision now.'}"
 
-YOUR TASK:
-- If client gave a clear, on-topic answer → ADVANCE: true, acknowledge what they said specifically, then ask the next question fully
-- If answer is vague/broad and follow-ups < 2 and not off-topic → ADVANCE: false, ask ONE short focused follow-up
-- If skip signal OR max follow-ups → ADVANCE: true, move to next question
-- If off-topic → ADVANCE: false, briefly acknowledge humor/confusion and redirect warmly
-
-RULES:
-- Never repeat "Got it, that helps clarify your vision" verbatim
-- Always include the FULL next question text when advancing
-- Keep your message under 5 sentences
-- Be warm, natural, specific to what they actually said
+CRITICAL ADVANCEMENT RULES:
+1. ONLY set ADVANCE: true if the client ACTUALLY provided relevant information answering Question #${currentQ?.number}, OR explicitly said 'skip'/'next'.
+2. If the client asked a meta-question, tested the mic, asked about languages, or questioned the system: Set ADVANCE: false! Answer their question, then guide them back to Question #${currentQ?.number}: "${currentQ?.title}". Do NOT advance.
+3. If the client said something off-topic, confusing, or conversational banter: Set ADVANCE: false. Redirect back to Question #${currentQ?.number}.
+4. Never repeat "Got it, that helps clarify your vision" verbatim.
+5. Always include the FULL next question text when advancing.
+6. Keep your message under 4 sentences.
+7. Be warm, natural, specific to what they actually said.
 
 RESPOND ONLY IN THIS EXACT FORMAT:
 ADVANCE: true
