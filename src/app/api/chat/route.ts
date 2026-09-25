@@ -28,7 +28,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Session is already completed' }, { status: 400 });
     }
 
-    // 2. Count existing follow-ups for the current question
+    // 2. Fetch conversation history for context (ENOS needs to remember what was said)
+    const { data: allMessages } = await supabase
+      .from('messages')
+      .select('role, content')
+      .eq('session_id', session.id)
+      .order('created_at', { ascending: true });
+
+    const conversationHistory = (allMessages || []).map(m => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    // 3. Count existing follow-ups for the current question
     const currentQ = CORE_QUESTIONS[session.current_question_index];
     const currentQuestionKey = questionId || currentQ?.id || 'question';
 
@@ -37,11 +49,12 @@ export async function POST(request: NextRequest) {
       .select('id')
       .eq('session_id', session.id)
       .eq('question_id', currentQuestionKey)
-      .eq('is_follow_up', true);
+      .eq('is_follow_up', true)
+      .eq('role', 'enos');
 
     const followUpCount = previousFollowUps?.length || 0;
 
-    // 3. Save Client Message
+    // 4. Save Client Message
     await supabase.from('messages').insert({
       session_id: session.id,
       role: 'client',
@@ -50,16 +63,16 @@ export async function POST(request: NextRequest) {
       is_follow_up: false,
     });
 
-    // 4. Generate AI Turn from ENOS
+    // 5. Generate AI Turn from ENOS (with full conversation history for context)
     const aiResponse = await generateEnosResponse({
       clientName: session.client_name || 'there',
       currentQuestionIndex: session.current_question_index,
       followUpCountForCurrentQuestion: followUpCount,
-      recentHistory: [],
+      conversationHistory, // pass full history so ENOS is context-aware
       latestClientAnswer: message.trim(),
     });
 
-    // 5. Save ENOS Message
+    // 6. Save ENOS Message
     await supabase.from('messages').insert({
       session_id: session.id,
       role: 'enos',
@@ -68,17 +81,18 @@ export async function POST(request: NextRequest) {
       is_follow_up: aiResponse.isFollowUp,
     });
 
-    // 6. Update Session State & Chapter
+    // 7. Update Session State & Chapter
     const nextIndex = aiResponse.nextQuestionIndex;
     const nextQ = CORE_QUESTIONS[nextIndex];
     const newChapter = nextQ ? nextQ.chapter : 3;
+    const isFinished = nextIndex >= CORE_QUESTIONS.length;
 
     await supabase
       .from('sessions')
       .update({
         current_question_index: nextIndex,
         current_chapter: newChapter,
-        status: 'in_progress',
+        status: isFinished ? 'completed' : 'in_progress',
         updated_at: new Date().toISOString(),
       })
       .eq('id', session.id);
@@ -88,7 +102,7 @@ export async function POST(request: NextRequest) {
       isFollowUp: aiResponse.isFollowUp,
       nextQuestionIndex: nextIndex,
       chapter: newChapter,
-      isFinished: nextIndex >= CORE_QUESTIONS.length,
+      isFinished,
     });
   } catch (error: any) {
     console.error('Chat API Error:', error);

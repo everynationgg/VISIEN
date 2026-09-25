@@ -32,9 +32,13 @@ export default function AdminDashboardPage() {
 
   // Inspector Drawer State
   const [selectedSession, setSelectedSession] = useState<any | null>(null);
+  const [selectedBrief, setSelectedBrief] = useState<any | null>(null);
   const [sessionMessages, setSessionMessages] = useState<Message[]>([]);
   const [activeTab, setActiveTab] = useState<'brief' | 'transcript'>('brief');
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [copiedTranscript, setCopiedTranscript] = useState(false);
+  const [copiedBrief, setCopiedBrief] = useState(false);
+  const [isGeneratingBrief, setIsGeneratingBrief] = useState(false);
 
   const fetchSessions = async () => {
     setLoading(true);
@@ -82,15 +86,129 @@ export default function AdminDashboardPage() {
 
   const openSessionDetails = async (session: any) => {
     setSelectedSession(session);
+    const initialBrief = Array.isArray(session.app_briefs)
+      ? session.app_briefs[0]
+      : session.app_briefs;
+    setSelectedBrief(initialBrief || null);
     setLoadingDetails(true);
     try {
       const res = await fetch(`/api/session/${session.token}`);
       const data = await res.json();
       setSessionMessages(data.messages || []);
+      if (data.brief) {
+        setSelectedBrief(data.brief);
+      }
+      if (data.session) {
+        setSelectedSession((prev: any) => ({ ...prev, ...data.session }));
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching session details:', err);
     } finally {
       setLoadingDetails(false);
+    }
+  };
+
+  const copyFullTranscript = () => {
+    if (!selectedSession || sessionMessages.length === 0) return;
+    const client = selectedSession.client_name || 'Client';
+    const company = selectedSession.company ? ` (${selectedSession.company})` : '';
+    const date = new Date(selectedSession.created_at).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    const header = [
+      `==================================================`,
+      `VISIEN DISCOVERY TRANSCRIPT`,
+      `Client: ${client}${company}`,
+      `Token: ${selectedSession.token}`,
+      `Status: ${selectedSession.status?.toUpperCase() || 'UNKNOWN'}`,
+      `Date: ${date}`,
+      `Total Turns: ${sessionMessages.length}`,
+      `==================================================\n`,
+    ].join('\n');
+
+    const body = sessionMessages
+      .map((m) => {
+        const roleLabel = m.role === 'enos' ? 'ENOS (AI Guide)' : client;
+        return `[${roleLabel}]:\n${m.content}\n`;
+      })
+      .join('\n');
+
+    navigator.clipboard.writeText(`${header}\n${body}`);
+    setCopiedTranscript(true);
+    setTimeout(() => setCopiedTranscript(false), 2200);
+  };
+
+  const copyBriefAsMarkdown = () => {
+    if (!selectedBrief) return;
+    const client = selectedBrief.client_name || selectedSession?.client_name || 'Client';
+    const company = selectedBrief.company ? ` (${selectedBrief.company})` : '';
+
+    const md = [
+      `# ${selectedBrief.project_title || 'VISIEN App Brief'}`,
+      `**Client:** ${client}${company}`,
+      `**Session Token:** ${selectedSession?.token || 'N/A'}`,
+      `**Status:** ${selectedSession?.status?.toUpperCase() || 'COMPLETED'}`,
+      `**Date:** ${new Date(selectedBrief.created_at || Date.now()).toLocaleDateString()}`,
+      ``,
+      `---`,
+      ``,
+      `## 1. Executive Summary & Vision`,
+      selectedBrief.vision_summary || 'Not specified',
+      ``,
+      `## 2. Core Problem Statement`,
+      selectedBrief.problem_statement || 'Not specified',
+      ``,
+      `## 3. Target Users & Moment of Use`,
+      `- **Target Users:** ${selectedBrief.target_users || 'Not specified'}`,
+      `- **Moment of Use:** ${selectedBrief.moment_of_use || 'Not specified'}`,
+      ``,
+      `## 4. First Screen & Core Action`,
+      `- **First Screen Experience:** ${selectedBrief.first_screen_experience || 'Not specified'}`,
+      `- **Core Action:** ${selectedBrief.core_action || 'Not specified'}`,
+      `- **Expected Outcome:** ${selectedBrief.expected_outcome || 'Not specified'}`,
+      ``,
+      `## 5. Aesthetics & UX Feel`,
+      `- **Visual Direction:** ${selectedBrief.visual_direction || 'Not specified'}`,
+      `- **Emotional UX Keywords:** ${(selectedBrief.emotional_ux_feel || []).join(', ') || 'Not specified'}`,
+      `- **Anti-Patterns / Avoid:** ${(selectedBrief.anti_patterns || []).join(', ') || 'None specified'}`,
+      ``,
+      `## 6. V1 Essential Features`,
+      ...((selectedBrief.v1_essential_features || []).map((f: string) => `- ${f}`)),
+      ``,
+      `## 7. Business & Infrastructure`,
+      `- **Current Workflow:** ${selectedBrief.current_workflow || 'Not specified'}`,
+      `- **Business Impact:** ${selectedBrief.business_impact || 'Not specified'}`,
+      `- **Future Horizon:** ${selectedBrief.future_horizon || 'Not specified'}`,
+      `- **Infrastructure Preference:** ${selectedBrief.infrastructure_preference || 'ENGG Managed'}`,
+      selectedBrief.additional_notes ? `\n## 8. Additional Notes\n${selectedBrief.additional_notes}` : '',
+    ].join('\n');
+
+    navigator.clipboard.writeText(md);
+    setCopiedBrief(true);
+    setTimeout(() => setCopiedBrief(false), 2200);
+  };
+
+  const handleGenerateBriefAdmin = async () => {
+    if (!selectedSession) return;
+    setIsGeneratingBrief(true);
+    try {
+      const res = await fetch('/api/brief', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: selectedSession.token }),
+      });
+      const data = await res.json();
+      if (data.brief) {
+        setSelectedBrief(data.brief);
+        fetchSessions();
+      }
+    } catch (err) {
+      console.error('Error generating brief:', err);
+    } finally {
+      setIsGeneratingBrief(false);
     }
   };
 
@@ -193,7 +311,7 @@ export default function AdminDashboardPage() {
         ) : (
           <div className="sessions-grid">
             {filteredSessions.map((s) => {
-              const brief = s.app_briefs?.[0];
+              const brief = Array.isArray(s.app_briefs) ? s.app_briefs[0] : s.app_briefs;
               const shareUrl = `${getBaseUrl()}/i/${s.token}`;
 
               return (
@@ -371,93 +489,178 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* Tabs: Brief vs Transcript */}
-            <div className="drawer-tabs">
-              <button
-                type="button"
-                className={`drawer-tab ${activeTab === 'brief' ? 'active' : ''}`}
-                onClick={() => setActiveTab('brief')}
-              >
-                <FileText size={15} />
-                <span>App Brief</span>
-              </button>
-              <button
-                type="button"
-                className={`drawer-tab ${activeTab === 'transcript' ? 'active' : ''}`}
-                onClick={() => setActiveTab('transcript')}
-              >
-                <MessageSquare size={15} />
-                <span>Original Conversation</span>
-              </button>
+            {/* Tabs: Brief vs Transcript & Copy Actions */}
+            <div className="drawer-tabs-row">
+              <div className="drawer-tabs">
+                <button
+                  type="button"
+                  className={`drawer-tab ${activeTab === 'brief' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('brief')}
+                >
+                  <FileText size={15} />
+                  <span>App Brief</span>
+                </button>
+                <button
+                  type="button"
+                  className={`drawer-tab ${activeTab === 'transcript' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('transcript')}
+                >
+                  <MessageSquare size={15} />
+                  <span>Original Conversation</span>
+                </button>
+              </div>
+
+              {activeTab === 'transcript' ? (
+                <button
+                  type="button"
+                  className="drawer-copy-action-btn"
+                  onClick={copyFullTranscript}
+                  disabled={sessionMessages.length === 0}
+                  title="Copy full transcript to clipboard"
+                >
+                  {copiedTranscript ? <Check size={14} color="#16A34A" /> : <Copy size={14} />}
+                  <span>{copiedTranscript ? 'Copied!' : 'Copy Transcript'}</span>
+                </button>
+              ) : selectedBrief ? (
+                <button
+                  type="button"
+                  className="drawer-copy-action-btn"
+                  onClick={copyBriefAsMarkdown}
+                  title="Copy brief as Markdown"
+                >
+                  {copiedBrief ? <Check size={14} color="#16A34A" /> : <Copy size={14} />}
+                  <span>{copiedBrief ? 'Copied!' : 'Copy Brief'}</span>
+                </button>
+              ) : null}
             </div>
 
             <div className="drawer-body">
               {loadingDetails ? (
-                <p>Loading session details...</p>
+                <div className="drawer-loading">
+                  <p>Loading session details...</p>
+                </div>
               ) : activeTab === 'brief' ? (
-                selectedSession.app_briefs?.[0] ? (
+                selectedBrief ? (
                   <div className="brief-full-view">
-                    <h3 className="brief-project-title">
-                      {selectedSession.app_briefs[0].project_title}
-                    </h3>
+                    <div className="brief-title-bar">
+                      <div>
+                        <span className="brief-status-tag">Synthesized App Vision</span>
+                        <h3 className="brief-project-title">
+                          {selectedBrief.project_title || 'Untitled Application'}
+                        </h3>
+                      </div>
+                      <button
+                        type="button"
+                        className="visien-btn-secondary copy-brief-btn"
+                        onClick={copyBriefAsMarkdown}
+                        title="Copy full brief formatted as Markdown"
+                      >
+                        {copiedBrief ? <Check size={14} color="#16A34A" /> : <Copy size={14} />}
+                        <span>{copiedBrief ? 'Copied!' : 'Copy as Markdown'}</span>
+                      </button>
+                    </div>
 
                     <div className="brief-block">
                       <h4>Vision Summary</h4>
-                      <p>{selectedSession.app_briefs[0].vision_summary}</p>
+                      <p>{selectedBrief.vision_summary || 'Not specified'}</p>
                     </div>
 
                     <div className="brief-block">
                       <h4>Problem Statement</h4>
-                      <p>{selectedSession.app_briefs[0].problem_statement}</p>
+                      <p>{selectedBrief.problem_statement || 'Not specified'}</p>
                     </div>
 
                     <div className="brief-block">
                       <h4>Target Users & Moment of Use</h4>
-                      <p><strong>Users:</strong> {selectedSession.app_briefs[0].target_users}</p>
-                      <p><strong>When:</strong> {selectedSession.app_briefs[0].moment_of_use}</p>
+                      <p><strong>Users:</strong> {selectedBrief.target_users || 'Not specified'}</p>
+                      <p><strong>When:</strong> {selectedBrief.moment_of_use || 'Not specified'}</p>
                     </div>
 
                     <div className="brief-block">
                       <h4>First Screen & Core Action</h4>
-                      <p><strong>First Screen:</strong> {selectedSession.app_briefs[0].first_screen_experience}</p>
-                      <p><strong>Core Action:</strong> {selectedSession.app_briefs[0].core_action}</p>
-                      <p><strong>Expected Outcome:</strong> {selectedSession.app_briefs[0].expected_outcome}</p>
+                      <p><strong>First Screen:</strong> {selectedBrief.first_screen_experience || 'Not specified'}</p>
+                      <p><strong>Core Action:</strong> {selectedBrief.core_action || 'Not specified'}</p>
+                      <p><strong>Expected Outcome:</strong> {selectedBrief.expected_outcome || 'Not specified'}</p>
                     </div>
 
                     <div className="brief-block">
                       <h4>Aesthetics & Feel</h4>
-                      <p><strong>Visual Direction:</strong> {selectedSession.app_briefs[0].visual_direction}</p>
-                      <p><strong>UX Feel:</strong> {selectedSession.app_briefs[0].emotional_ux_feel?.join(', ')}</p>
-                      <p><strong>Anti-patterns:</strong> {selectedSession.app_briefs[0].anti_patterns?.join(', ')}</p>
+                      <p><strong>Visual Direction:</strong> {selectedBrief.visual_direction || 'Not specified'}</p>
+                      <p><strong>UX Feel:</strong> {selectedBrief.emotional_ux_feel && selectedBrief.emotional_ux_feel.length > 0 ? selectedBrief.emotional_ux_feel.join(', ') : 'Not specified'}</p>
+                      <p><strong>Anti-patterns:</strong> {selectedBrief.anti_patterns && selectedBrief.anti_patterns.length > 0 ? selectedBrief.anti_patterns.join(', ') : 'None specified'}</p>
                     </div>
 
                     <div className="brief-block">
                       <h4>V1 Essential Scope</h4>
-                      <ul>
-                        {selectedSession.app_briefs[0].v1_essential_features?.map((feat: string, i: number) => (
-                          <li key={i}>{feat}</li>
-                        ))}
-                      </ul>
+                      {selectedBrief.v1_essential_features && selectedBrief.v1_essential_features.length > 0 ? (
+                        <ul>
+                          {selectedBrief.v1_essential_features.map((feat: string, i: number) => (
+                            <li key={i}>{feat}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>Not specified</p>
+                      )}
                     </div>
 
                     <div className="brief-block">
                       <h4>Infrastructure Preference</h4>
-                      <p>{selectedSession.app_briefs[0].infrastructure_preference}</p>
+                      <p>{selectedBrief.infrastructure_preference || 'Every Nation GG Managed'}</p>
                     </div>
+
+                    {selectedBrief.additional_notes && (
+                      <div className="brief-block">
+                        <h4>Additional Notes</h4>
+                        <p>{selectedBrief.additional_notes}</p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="no-brief-notice">
-                    <p>This session has not completed discovery yet.</p>
+                    <p className="no-brief-text">This session has not generated an App Brief yet.</p>
+                    {sessionMessages.length > 0 ? (
+                      <button
+                        type="button"
+                        className="visien-btn-primary generate-brief-btn"
+                        onClick={handleGenerateBriefAdmin}
+                        disabled={isGeneratingBrief}
+                      >
+                        <Sparkles size={15} />
+                        <span>{isGeneratingBrief ? 'Synthesizing with Gemini...' : 'Synthesize App Brief with Gemini'}</span>
+                      </button>
+                    ) : (
+                      <p className="no-brief-sub">The client has not started chatting yet.</p>
+                    )}
                   </div>
                 )
               ) : (
                 <div className="transcript-view">
-                  {sessionMessages.map((m) => (
-                    <div key={m.id} className={`transcript-bubble ${m.role}`}>
-                      <span className="transcript-role">{m.role === 'enos' ? 'ENOS' : 'Client'}:</span>
-                      <p>{m.content}</p>
+                  <div className="transcript-header-bar">
+                    <span className="transcript-count">{sessionMessages.length} messages in conversation</span>
+                    <button
+                      type="button"
+                      className="visien-btn-secondary copy-transcript-action-btn"
+                      onClick={copyFullTranscript}
+                      disabled={sessionMessages.length === 0}
+                    >
+                      {copiedTranscript ? <Check size={14} color="#16A34A" /> : <Copy size={14} />}
+                      <span>{copiedTranscript ? 'Copied Transcript!' : 'Copy Full Transcript'}</span>
+                    </button>
+                  </div>
+                  {sessionMessages.length === 0 ? (
+                    <div className="no-brief-notice">
+                      <p className="no-brief-text">No conversation messages recorded yet.</p>
                     </div>
-                  ))}
+                  ) : (
+                    sessionMessages.map((m) => (
+                      <div key={m.id} className={`transcript-bubble ${m.role}`}>
+                        <span className="transcript-role">
+                          {m.role === 'enos' ? 'ENOS (AI Guide)' : selectedSession?.client_name || 'Client'}:
+                        </span>
+                        <p>{m.content}</p>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
             </div>
@@ -755,12 +958,19 @@ export default function AdminDashboardPage() {
           cursor: pointer;
         }
 
+        .drawer-tabs-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid var(--border-subtle);
+          padding-bottom: 12px;
+          margin-bottom: 20px;
+          gap: 12px;
+        }
+
         .drawer-tabs {
           display: flex;
           gap: 8px;
-          border-bottom: 1px solid var(--border-subtle);
-          padding-bottom: 10px;
-          margin-bottom: 20px;
         }
 
         .drawer-tab {
@@ -775,6 +985,12 @@ export default function AdminDashboardPage() {
           font-weight: 600;
           color: var(--text-secondary);
           cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .drawer-tab:hover {
+          color: var(--violet-primary);
+          background: var(--violet-subtle);
         }
 
         .drawer-tab.active {
@@ -782,47 +998,179 @@ export default function AdminDashboardPage() {
           color: var(--violet-deep);
         }
 
+        .drawer-copy-action-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 14px;
+          background: var(--bg-cream-soft);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-full);
+          font-size: 12.5px;
+          font-weight: 600;
+          color: var(--text-main);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+
+        .drawer-copy-action-btn:hover:not(:disabled) {
+          background: #FFFFFF;
+          border-color: var(--violet-primary);
+          color: var(--violet-deep);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .drawer-copy-action-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .drawer-loading {
+          padding: 32px 0;
+          text-align: center;
+          color: var(--text-secondary);
+        }
+
+        .brief-title-bar {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 22px;
+          padding-bottom: 16px;
+          border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .brief-status-tag {
+          display: inline-block;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--violet-deep);
+          background: var(--violet-soft);
+          padding: 2px 8px;
+          border-radius: var(--radius-full);
+          margin-bottom: 6px;
+        }
+
+        .brief-project-title {
+          font-size: 20px;
+          font-weight: 800;
+          color: var(--text-main);
+          line-height: 1.3;
+        }
+
+        .copy-brief-btn {
+          padding: 8px 14px;
+          font-size: 12.5px;
+          gap: 6px;
+          white-space: nowrap;
+        }
+
         .brief-block {
-          margin-bottom: 18px;
+          margin-bottom: 20px;
         }
 
         .brief-block h4 {
-          font-size: 13px;
+          font-size: 12.5px;
           font-weight: 700;
           color: var(--violet-deep);
           text-transform: uppercase;
-          letter-spacing: 0.04em;
-          margin-bottom: 4px;
+          letter-spacing: 0.05em;
+          margin-bottom: 6px;
         }
 
         .brief-block p, .brief-block ul {
-          font-size: 14px;
+          font-size: 14.5px;
           color: var(--text-main);
           line-height: 1.6;
+        }
+
+        .brief-block ul {
+          padding-left: 20px;
+        }
+
+        .brief-block li {
+          margin-bottom: 4px;
+        }
+
+        .no-brief-notice {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 48px 20px;
+          text-align: center;
+          gap: 14px;
+          background: var(--bg-cream-soft);
+          border-radius: var(--radius-md);
+          border: 1px dashed rgba(120, 113, 108, 0.25);
+        }
+
+        .no-brief-text {
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--text-main);
+        }
+
+        .no-brief-sub {
+          font-size: 13.5px;
+          color: var(--text-muted);
+        }
+
+        .generate-brief-btn {
+          font-size: 13.5px;
+          padding: 10px 20px;
+          gap: 8px;
+        }
+
+        .transcript-header-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-bottom: 12px;
+          border-bottom: 1px solid var(--border-subtle);
+          margin-bottom: 16px;
+        }
+
+        .transcript-count {
+          font-size: 12.5px;
+          color: var(--text-muted);
+          font-weight: 600;
+        }
+
+        .copy-transcript-action-btn {
+          padding: 6px 14px;
+          font-size: 12.5px;
+          gap: 6px;
         }
 
         .transcript-view {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 14px;
         }
 
         .transcript-bubble {
-          padding: 12px 16px;
+          padding: 14px 18px;
           border-radius: var(--radius-md);
-          font-size: 13.5px;
-          line-height: 1.5;
+          font-size: 14.5px;
+          line-height: 1.6;
+          word-break: break-word;
         }
 
         .transcript-bubble.client {
           background: var(--bg-cream-soft);
           align-self: flex-end;
           max-width: 85%;
+          border: 1px solid var(--border-subtle);
         }
 
         .transcript-bubble.enos {
           background: #FAF5FF;
-          border: 1px solid var(--violet-soft);
+          border: 1px solid rgba(124, 58, 237, 0.18);
           align-self: flex-start;
           max-width: 85%;
         }
@@ -832,7 +1180,9 @@ export default function AdminDashboardPage() {
           font-size: 11px;
           font-weight: 700;
           color: var(--violet-deep);
-          margin-bottom: 4px;
+          margin-bottom: 5px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
         }
       `}</style>
     </div>
