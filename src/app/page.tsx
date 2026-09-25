@@ -41,14 +41,16 @@ export default function HomePage() {
 
         {/* Private Token Entry Box */}
         <div className="visien-card token-card">
-          <p className="token-label">Have an invitation link or code?</p>
+          <p className="token-label">Enter your 6-digit session code or link</p>
           <form onSubmit={handleJoin} className="token-form">
             <input
               type="text"
               className="token-input"
-              placeholder="Paste invitation link or code"
+              placeholder="e.g. 748-219"
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
+              autoCapitalize="characters"
+              autoCorrect="off"
             />
             <button
               type="submit"

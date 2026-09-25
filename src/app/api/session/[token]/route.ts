@@ -13,14 +13,35 @@ export async function GET(
 
     const supabase = getAdminSupabase();
 
-    // 1. Fetch session by token
-    const { data: session, error: sessionError } = await supabase
+    // 1. Fetch session by token (handles with-dash, without-dash, case-insensitive, and legacy tokens)
+    const cleanToken = token.trim();
+    let { data: session } = await supabase
       .from('sessions')
       .select('*')
-      .eq('token', token)
-      .single();
+      .eq('token', cleanToken)
+      .maybeSingle();
 
-    if (sessionError || !session) {
+    if (!session && cleanToken.length === 6 && !cleanToken.includes('-')) {
+      const withDash = `${cleanToken.slice(0, 3)}-${cleanToken.slice(3)}`;
+      const { data: dashMatch } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('token', withDash)
+        .maybeSingle();
+      session = dashMatch;
+    }
+
+    if (!session && cleanToken.includes('-')) {
+      const noDash = cleanToken.replace(/-/g, '');
+      const { data: noDashMatch } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('token', noDash)
+        .maybeSingle();
+      session = noDashMatch;
+    }
+
+    if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
@@ -90,10 +111,41 @@ export async function PATCH(
       }
     }
 
+    const cleanToken = token.trim();
+    let { data: existingSession } = await supabase
+      .from('sessions')
+      .select('id')
+      .eq('token', cleanToken)
+      .maybeSingle();
+
+    if (!existingSession && cleanToken.length === 6 && !cleanToken.includes('-')) {
+      const withDash = `${cleanToken.slice(0, 3)}-${cleanToken.slice(3)}`;
+      const { data: dashMatch } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('token', withDash)
+        .maybeSingle();
+      existingSession = dashMatch;
+    }
+
+    if (!existingSession && cleanToken.includes('-')) {
+      const noDash = cleanToken.replace(/-/g, '');
+      const { data: noDashMatch } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('token', noDash)
+        .maybeSingle();
+      existingSession = noDashMatch;
+    }
+
+    if (!existingSession) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
     const { data: updatedSession, error } = await supabase
       .from('sessions')
       .update(updatePayload)
-      .eq('token', token)
+      .eq('id', existingSession.id)
       .select()
       .single();
 

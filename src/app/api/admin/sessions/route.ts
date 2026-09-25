@@ -2,15 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import crypto from 'crypto';
 
-// Generates an unguessable 8-character alphanumeric token
+// Generates a memorable, clean 6-digit session code (e.g. 748-219)
 function generateSecureToken(): string {
-  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
-  const bytes = crypto.randomBytes(8);
-  let result = '';
-  for (let i = 0; i < 8; i++) {
-    result += chars[bytes[i] % chars.length];
-  }
-  return result;
+  const num = crypto.randomInt(100000, 999999);
+  const str = num.toString();
+  return `${str.slice(0, 3)}-${str.slice(3)}`;
 }
 
 // GET /api/admin/sessions: Lists all client sessions and briefs

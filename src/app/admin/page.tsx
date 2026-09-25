@@ -28,6 +28,8 @@ export default function AdminDashboardPage() {
   const [email, setEmail] = useState('');
   const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedMsg, setCopiedMsg] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
   // Inspector Drawer State
@@ -343,14 +345,14 @@ export default function AdminDashboardPage() {
                   )}
 
                   <div className="session-token-row" onClick={(e) => e.stopPropagation()}>
-                    <code className="token-code">{shareUrl}</code>
+                    <span className="code-pill">Code: <strong>{s.token}</strong></span>
                     <button
                       type="button"
                       className="icon-copy-btn"
-                      onClick={() => copyToClipboard(shareUrl)}
-                      title="Copy invitation link"
+                      onClick={() => copyToClipboard(s.token)}
+                      title="Copy 6-digit Code"
                     >
-                      <Copy size={14} />
+                      <Copy size={13} />
                     </button>
                     <a
                       href={`/i/${s.token}`}
@@ -359,7 +361,7 @@ export default function AdminDashboardPage() {
                       className="icon-copy-btn"
                       title="Open discovery session"
                     >
-                      <ExternalLink size={14} />
+                      <ExternalLink size={13} />
                     </a>
                   </div>
 
@@ -442,25 +444,61 @@ export default function AdminDashboardPage() {
               </form>
             ) : (
               <div className="created-token-view">
-                <p className="success-label">🎉 Private Session Created!</p>
-                <div className="link-box">
-                  <code>{`${getBaseUrl()}/i/${createdToken}`}</code>
+                <p className="success-label">🎉 Session Created!</p>
+
+                <div className="code-display-card">
+                  <span className="code-badge-label">SESSION ACCESS CODE</span>
+                  <div className="code-number-display">{createdToken}</div>
+                  <p className="code-subtext">
+                    Clients can simply go to your site and enter this 6-digit code.
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  className="visien-btn-primary copy-large-btn"
-                  onClick={() => copyToClipboard(`${getBaseUrl()}/i/${createdToken}`)}
-                >
-                  {copiedToken ? <Check size={16} /> : <Copy size={16} />}
-                  <span>{copiedToken ? 'Link Copied!' : 'Copy Private Link'}</span>
-                </button>
-                <button
-                  type="button"
-                  className="visien-btn-secondary close-btn"
-                  onClick={() => setShowNewModal(false)}
-                >
-                  Done
-                </button>
+
+                <div className="share-actions-group">
+                  <button
+                    type="button"
+                    className="visien-btn-primary copy-large-btn"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdToken || '');
+                      setCopiedCode(true);
+                      setTimeout(() => setCopiedCode(false), 2200);
+                    }}
+                  >
+                    {copiedCode ? <Check size={16} /> : <Copy size={16} />}
+                    <span>{copiedCode ? 'Code Copied!' : `Copy Code: ${createdToken}`}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="visien-btn-secondary"
+                    onClick={() => {
+                      const msg = `Hi ${clientName || 'there'}! Here is your private VISIEN session code: ${createdToken}\n\nEnter it at ${getBaseUrl()} to begin your app discovery session.`;
+                      navigator.clipboard.writeText(msg);
+                      setCopiedMsg(true);
+                      setTimeout(() => setCopiedMsg(false), 2200);
+                    }}
+                  >
+                    {copiedMsg ? <Check size={15} /> : <MessageSquare size={15} />}
+                    <span>{copiedMsg ? 'Invite Text Copied!' : 'Copy Invitation Message'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="visien-btn-secondary copy-link-btn"
+                    onClick={() => copyToClipboard(`${getBaseUrl()}/i/${createdToken}`)}
+                  >
+                    {copiedToken ? <Check size={15} /> : <ExternalLink size={15} />}
+                    <span>{copiedToken ? 'Link Copied!' : 'Copy Direct Link'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="visien-btn-secondary close-btn"
+                    onClick={() => setShowNewModal(false)}
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -480,7 +518,7 @@ export default function AdminDashboardPage() {
                   {selectedSession.client_name || 'Client Session'}
                 </h2>
                 <p className="drawer-sub">
-                  Token: <code>{selectedSession.token}</code>
+                  Session Code: <strong>{selectedSession.token}</strong>
                 </p>
               </div>
               <button
@@ -914,7 +952,66 @@ export default function AdminDashboardPage() {
           text-align: center;
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 12px;
+        }
+
+        .code-display-card {
+          background: rgba(124, 58, 237, 0.05);
+          border: 1px solid rgba(124, 58, 237, 0.22);
+          border-radius: var(--radius-md);
+          padding: 16px 14px;
+          margin: 4px 0 6px;
+          text-align: center;
+        }
+
+        .code-badge-label {
+          display: inline-block;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          color: var(--violet-primary);
+          text-transform: uppercase;
+          margin-bottom: 4px;
+        }
+
+        .code-number-display {
+          font-family: var(--font-mono, monospace);
+          font-size: 32px;
+          font-weight: 800;
+          letter-spacing: 2px;
+          color: var(--text-main);
+          user-select: all;
+          margin: 4px 0;
+        }
+
+        .code-subtext {
+          font-size: 12px;
+          color: var(--text-secondary);
+          margin-top: 4px;
+        }
+
+        .share-actions-group {
+          display: flex;
+          flex-direction: column;
+          gap: 9px;
+          width: 100%;
+        }
+
+        .code-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          background: rgba(124, 58, 237, 0.08);
+          border: 1px solid rgba(124, 58, 237, 0.2);
+          color: var(--violet-deep);
+          padding: 4px 10px;
+          border-radius: var(--radius-full);
+          font-size: 12.5px;
+          font-family: var(--font-mono, monospace);
+        }
+
+        .code-pill strong {
+          letter-spacing: 0.5px;
         }
 
         .link-box {
