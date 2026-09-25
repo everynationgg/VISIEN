@@ -78,10 +78,18 @@ export default function DiscoverySessionPage() {
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isSending]);
+
+  // Keep cursor focused in chatbox
+  useEffect(() => {
+    if (onboardingStep === 'chat' && !isSending && !isGeneratingBrief) {
+      inputRef.current?.focus();
+    }
+  }, [onboardingStep, isSending, isGeneratingBrief]);
 
   // Load Session
   useEffect(() => {
@@ -121,33 +129,104 @@ export default function DiscoverySessionPage() {
     loadSession();
   }, [token]);
 
-  // Voice Recognition Setup
+  // Cleanup voice recognition on unmount
   useEffect(() => {
-    if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInputText((prev) => (prev ? `${prev} ${transcript}` : transcript));
-        setIsListening(false);
-      };
-      recognition.onerror = () => setIsListening(false);
-      recognition.onend = () => setIsListening(false);
-      recognitionRef.current = recognition;
-    }
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {}
+      }
+    };
   }, []);
 
-  const toggleListening = () => {
-    if (!recognitionRef.current) return;
+  const toggleListening = async () => {
+    // If currently listening, stop it
     if (isListening) {
-      recognitionRef.current.stop();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
       setIsListening(false);
-    } else {
-      setIsListening(true);
-      recognitionRef.current.start();
+      inputRef.current?.focus();
+      return;
+    }
+
+    // 1. Check for Web Speech API support
+    const SpeechRecognition =
+      typeof window !== 'undefined' &&
+      ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+
+    if (!SpeechRecognition) {
+      alert(
+        'Voice dictation is supported in Google Chrome, Microsoft Edge, and Safari. Please use one of these browsers for voice input.'
+      );
+      return;
+    }
+
+    // 2. Explicitly request microphone access via getUserMedia to trigger the browser permission prompt
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Stop audio tracks immediately once permission is verified
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    } catch (permError: any) {
+      console.warn('Microphone permission error:', permError);
+      alert(
+        'Microphone access was denied or not found. Please click the camera/lock icon in your browser address bar to allow microphone access.'
+      );
+      return;
+    }
+
+    // 3. Instantiate and start SpeechRecognition
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      let lastFinal = '';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        let interimText = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const trans = event.results[i][0]?.transcript || '';
+          if (event.results[i].isFinal) {
+            lastFinal += (lastFinal ? ' ' : '') + trans;
+          } else {
+            interimText += trans;
+          }
+        }
+        const full = (lastFinal + (interimText ? ' ' + interimText : '')).trim();
+        if (full) {
+          setInputText(full);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          alert('Microphone access was denied. Please allow microphone access in your browser settings.');
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        setTimeout(() => inputRef.current?.focus(), 100);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err: any) {
+      console.error('Error starting speech recognition:', err);
+      setIsListening(false);
     }
   };
 
@@ -264,6 +343,9 @@ export default function DiscoverySessionPage() {
     setIsSending(true);
     setOrbState('thinking');
 
+    // Retain focus in input box immediately
+    inputRef.current?.focus();
+
     const tempUserMsg: Message = {
       id: `temp-${Date.now()}`,
       session_id: session.id,
@@ -317,6 +399,7 @@ export default function DiscoverySessionPage() {
       setOrbState('idle');
     } finally {
       setIsSending(false);
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
   };
 
@@ -543,13 +626,20 @@ export default function DiscoverySessionPage() {
           </button>
 
           <input
+            ref={inputRef}
             type="text"
             className="chat-input"
-            placeholder={isListening ? 'Listening...' : 'Type your answer...'}
+            placeholder={isListening ? 'Listening... Speak into your mic' : 'Type your answer...'}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSendMessage(); } }}
-            disabled={isSending || isGeneratingBrief}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSendMessage();
+                inputRef.current?.focus();
+              }
+            }}
+            autoFocus
           />
 
           <button
@@ -705,6 +795,14 @@ export default function DiscoverySessionPage() {
         .voice-btn.listening {
           border-color: var(--gold-warm);
           background: var(--gold-soft);
+          color: var(--gold-warm);
+          animation: mic-pulse 1.5s infinite;
+        }
+
+        @keyframes mic-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.4); }
+          70% { box-shadow: 0 0 0 8px rgba(234, 88, 12, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0); }
         }
 
         .chat-input {
