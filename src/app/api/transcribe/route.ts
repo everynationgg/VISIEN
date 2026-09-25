@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const apiKey = process.env.GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey);
-const TRANSCRIPTION_MODEL = 'gemini-3.5-flash-lite';
+const TRANSCRIPTION_MODELS = ['gemini-3.1-flash-lite', 'gemini-3-flash-preview', 'gemini-3.5-transcribe'];
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,23 +24,35 @@ export async function POST(request: NextRequest) {
     // Clean mime type (e.g. 'audio/webm;codecs=opus' -> 'audio/webm')
     const mimeType = rawMime.split(';')[0].trim();
 
-    const model = genAI.getGenerativeModel({
-      model: TRANSCRIPTION_MODEL,
-    });
+    let transcript = '';
+    let lastError = null;
 
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: mimeType || 'audio/webm',
-          data: base64Audio,
-        },
-      },
-      {
-        text: 'Transcribe the spoken speech from this audio recording into clean text. Return ONLY the transcribed words. Do NOT add any preamble, notes, formatting, or quotes. If the audio is silent or unintelligible, return an empty string.',
-      },
-    ]);
+    for (const modelName of TRANSCRIPTION_MODELS) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent([
+          {
+            inlineData: {
+              mimeType: mimeType || 'audio/webm',
+              data: base64Audio,
+            },
+          },
+          {
+            text: 'Transcribe the spoken speech from this audio recording into clean text. Return ONLY the transcribed words. Do NOT add any preamble, notes, formatting, or quotes. If the audio is silent or unintelligible, return an empty string.',
+          },
+        ]);
+        transcript = result.response.text().trim();
+        break;
+      } catch (err: any) {
+        console.warn(`Transcription model ${modelName} failed (${err?.message?.slice(0, 100)}), trying next...`);
+        lastError = err;
+      }
+    }
 
-    const transcript = result.response.text().trim();
+    if (!transcript && lastError) {
+      throw lastError;
+    }
+
     return NextResponse.json({ transcript });
   } catch (error: any) {
     console.error('Transcription API error:', error);

@@ -10,30 +10,31 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// Active model: gemini-3.5-flash-lite (high free tier quota, fast, conversational)
-const ENOS_MODEL = 'gemini-3.5-flash-lite';
+// High-availability Gemini model tier with automatic failover
+export const GEMINI_CHAT_MODELS = [
+  'gemini-3.1-flash-lite',
+  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite-preview',
+];
 
 /**
- * Retries a Gemini call with exponential backoff on 429 rate-limit errors.
+ * Executes a Gemini operation with automatic model failover.
  */
-async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 5000): Promise<T> {
-  for (let attempt = 0; attempt <= retries; attempt++) {
+export async function executeGeminiWithFailover<T>(
+  action: (modelName: string) => Promise<T>
+): Promise<T> {
+  let lastError: any = null;
+
+  for (const modelName of GEMINI_CHAT_MODELS) {
     try {
-      return await fn();
+      return await action(modelName);
     } catch (err: any) {
-      const is429 = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('Too Many Requests') || err?.message?.includes('quota');
-      if (is429 && attempt < retries) {
-        // Extract retry delay from Gemini error if available, otherwise use exponential backoff
-        const retryAfterMatch = err?.message?.match(/Please retry in (\d+)/);
-        const waitMs = retryAfterMatch ? parseInt(retryAfterMatch[1]) * 1000 : delayMs * Math.pow(2, attempt);
-        console.warn(`Gemini 429 rate limit — retrying in ${waitMs}ms (attempt ${attempt + 1}/${retries})`);
-        await new Promise(r => setTimeout(r, Math.min(waitMs, 60000)));
-        continue;
-      }
-      throw err;
+      console.warn(`Gemini model ${modelName} error (${err?.message?.slice(0, 100)}), failing over...`);
+      lastError = err;
     }
   }
-  throw new Error('Max retries exceeded');
+
+  throw lastError || new Error('All Gemini model fallbacks exhausted');
 }
 
 export const enosSystemInstruction = `
@@ -97,15 +98,6 @@ export async function generateEnosResponse(
     };
   }
 
-  const model = genAI.getGenerativeModel({
-    model: ENOS_MODEL,
-    generationConfig: {
-      temperature: 0.75,
-      maxOutputTokens: 500,
-      topP: 0.9,
-    },
-  });
-
   const recentHistory = context.conversationHistory.slice(-8);
   const historyText = recentHistory.length > 0
     ? `\nRECENT CONVERSATION:\n${recentHistory.map(m => `${m.role === 'enos' ? 'ENOS' : 'CLIENT'}: ${m.content}`).join('\n')}\n`
@@ -164,7 +156,17 @@ ADVANCE: false
 MESSAGE: [your message here]`;
 
   try {
-    const result = await withRetry(() => model.generateContent(fullPrompt));
+    const result = await executeGeminiWithFailover(async (modelName) => {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          temperature: 0.75,
+          maxOutputTokens: 500,
+          topP: 0.9,
+        },
+      });
+      return await model.generateContent(fullPrompt);
+    });
 
     // Safely extract text — handle empty candidates gracefully
     let text = '';
@@ -200,19 +202,21 @@ MESSAGE: [your message here]`;
         : context.currentQuestionIndex,
     };
   } catch (error) {
-    console.error('generateEnosResponse error:', error);
-    const fallbackAdvance = mustAdvance || !nextQ;
-    const fallback = fallbackAdvance
+    console.error('generateEnosResponse fallback error:', error);
+    // If client provided a meaningful answer or we reached max followups, advance to keep momentum!
+    const clientWords = context.latestClientAnswer.trim().split(/\s+/).length;
+    const shouldAdvance = mustAdvance || !nextQ || clientWords >= 2;
+    const fallbackMessage = shouldAdvance
       ? nextQ
-        ? `Noted. Let's keep going — ${nextQ.title}`
-        : `That covers everything I needed. Let me put together your App Vision now.`
-      : `Could you share a bit more detail about that?`;
+        ? `Understood, that gives us great clarity. Let's move to our next point: ${nextQ.title}`
+        : `That covers everything I needed. Let me synthesize your App Vision now.`
+      : `Thanks for sharing that! Could you elaborate a bit more on what you envision here?`;
 
     return {
-      message: fallback,
-      isFollowUp: !fallbackAdvance,
-      advanceToNextQuestion: fallbackAdvance,
-      nextQuestionIndex: fallbackAdvance
+      message: fallbackMessage,
+      isFollowUp: !shouldAdvance,
+      advanceToNextQuestion: shouldAdvance,
+      nextQuestionIndex: shouldAdvance
         ? context.currentQuestionIndex + 1
         : context.currentQuestionIndex,
     };
@@ -226,13 +230,6 @@ export async function generateAppBriefFromTranscript(
   clientName: string,
   transcript: { role: string; content: string }[]
 ): Promise<Partial<AppBrief>> {
-  const model = genAI.getGenerativeModel({
-    model: ENOS_MODEL,
-    generationConfig: {
-      temperature: 0.2,
-      responseMimeType: 'application/json',
-    },
-  });
 
   const prompt = `
 You are the lead technical analyst at Every Nation GG.
@@ -268,7 +265,17 @@ Extract into JSON matching this exact structure:
 }
 `;
 
-  const result = await withRetry(() => model.generateContent(prompt));
+  const result = await executeGeminiWithFailover(async (modelName) => {
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: {
+        temperature: 0.2,
+        responseMimeType: 'application/json',
+      },
+    });
+    return await model.generateContent(prompt);
+  });
+
   const text = result.response.text();
 
   // Strip possible markdown code fences

@@ -378,14 +378,26 @@ export default function DiscoverySessionPage() {
         body: JSON.stringify({ token }),
       });
       const data = await res.json();
+      if (!res.ok || !data.brief) {
+        throw new Error(data?.error || 'Failed to synthesize app brief');
+      }
       setGeneratedBrief(data.brief);
       setTimeout(() => {
         setIsReviewMode(true);
         setOrbState('idle');
-      }, 2500);
-    } catch (err) {
+      }, 1800);
+    } catch (err: any) {
       console.error('Brief generation error:', err);
       setOrbState('idle');
+      const failMsg: Message = {
+        id: `enos-fail-${Date.now()}`,
+        session_id: session?.id || '',
+        role: 'enos',
+        content: `I had a brief connection delay while compiling your App Brief. Please tap 'End Chat' above or try again in a few moments.`,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, failMsg]);
+      setNewestEnosId(failMsg.id);
     } finally {
       setIsGeneratingBrief(false);
     }
