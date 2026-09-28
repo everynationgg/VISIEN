@@ -14,6 +14,8 @@ import {
   Layers,
   ChevronRight,
   RefreshCw,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
@@ -41,6 +43,39 @@ export default function AdminDashboardPage() {
   const [copiedTranscript, setCopiedTranscript] = useState(false);
   const [copiedBrief, setCopiedBrief] = useState(false);
   const [isGeneratingBrief, setIsGeneratingBrief] = useState(false);
+
+  // Delete Session Confirmation State
+  const [sessionToDelete, setSessionToDelete] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/admin/sessions?id=${sessionToDelete.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete session');
+      }
+
+      // Close drawer if this session was being viewed
+      if (selectedSession?.id === sessionToDelete.id) {
+        setSelectedSession(null);
+      }
+
+      setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
+      setSessionToDelete(null);
+    } catch (err: any) {
+      console.error('Error deleting session:', err);
+      setDeleteError(err.message || 'Failed to delete session');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const fetchSessions = async () => {
     setLoading(true);
@@ -335,7 +370,21 @@ export default function AdminDashboardPage() {
                         {s.company && <span className="company-tag"> • {s.company}</span>}
                       </h3>
                     </div>
-                    <ChevronRight size={18} color="var(--text-muted)" />
+                    <div className="session-card-actions">
+                      <button
+                        type="button"
+                        className="icon-delete-btn"
+                        title="Delete session"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteError(null);
+                          setSessionToDelete(s);
+                        }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                      <ChevronRight size={18} color="var(--text-muted)" />
+                    </div>
                   </div>
 
                   {brief?.project_title && (
@@ -496,6 +545,62 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
+      {sessionToDelete && (
+        <div
+          className="modal-backdrop"
+          onClick={() => !isDeleting && setSessionToDelete(null)}
+        >
+          <div
+            className="visien-card modal-card delete-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="delete-modal-icon-wrap">
+              <AlertTriangle size={24} className="delete-warning-icon" />
+            </div>
+
+            <h2 className="modal-title">Delete Session?</h2>
+            <p className="delete-modal-description">
+              Are you sure you want to permanently delete the discovery session for{' '}
+              <strong>{sessionToDelete.client_name || 'Unnamed Client'}</strong>
+              {sessionToDelete.company ? ` (${sessionToDelete.company})` : ''}?
+            </p>
+            <div className="delete-modal-subtext">
+              <div>Session Code: <code>{sessionToDelete.token}</code></div>
+              <p style={{ marginTop: '4px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                All transcripts, conversation messages, and generated app briefs will be permanently removed.
+              </p>
+            </div>
+
+            {deleteError && (
+              <div className="delete-error-banner">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="visien-btn-secondary"
+                onClick={() => setSessionToDelete(null)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="delete-danger-btn"
+                onClick={handleDeleteSession}
+                disabled={isDeleting}
+              >
+                <Trash2 size={15} />
+                <span>{isDeleting ? 'Deleting...' : 'Delete Permanently'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Session Details Drawer */}
       {selectedSession && (
         <div className="drawer-backdrop" onClick={() => setSelectedSession(null)}>
@@ -512,13 +617,27 @@ export default function AdminDashboardPage() {
                   Session Code: <strong>{selectedSession.token}</strong>
                 </p>
               </div>
-              <button
-                type="button"
-                className="close-drawer-btn"
-                onClick={() => setSelectedSession(null)}
-              >
-                ✕
-              </button>
+              <div className="drawer-header-actions">
+                <button
+                  type="button"
+                  className="drawer-delete-btn"
+                  onClick={() => {
+                    setDeleteError(null);
+                    setSessionToDelete(selectedSession);
+                  }}
+                  title="Delete this session"
+                >
+                  <Trash2 size={14} />
+                  <span>Delete Session</span>
+                </button>
+                <button
+                  type="button"
+                  className="close-drawer-btn"
+                  onClick={() => setSelectedSession(null)}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {/* Tabs: Brief vs Transcript & Copy Actions */}
@@ -854,6 +973,30 @@ export default function AdminDashboardPage() {
           color: var(--violet-primary);
         }
 
+        .session-card-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .icon-delete-btn {
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 5px;
+          border-radius: var(--radius-sm);
+          transition: all 0.15s ease;
+        }
+
+        .icon-delete-btn:hover {
+          color: #DC2626;
+          background: rgba(220, 38, 38, 0.08);
+        }
+
         .session-card-footer {
           display: flex;
           justify-content: space-between;
@@ -1048,12 +1191,116 @@ export default function AdminDashboardPage() {
           color: var(--text-muted);
         }
 
+        .drawer-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .drawer-delete-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #DC2626;
+          background: rgba(220, 38, 38, 0.06);
+          border: 1px solid rgba(220, 38, 38, 0.2);
+          border-radius: var(--radius-full);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .drawer-delete-btn:hover {
+          background: rgba(220, 38, 38, 0.12);
+          border-color: rgba(220, 38, 38, 0.35);
+        }
+
         .close-drawer-btn {
           background: none;
           border: none;
           font-size: 20px;
           color: var(--text-muted);
           cursor: pointer;
+        }
+
+        /* Delete Confirmation Modal Styles */
+        .delete-modal-card {
+          max-width: 440px;
+        }
+
+        .delete-modal-icon-wrap {
+          width: 46px;
+          height: 46px;
+          border-radius: 50%;
+          background: rgba(220, 38, 38, 0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 14px;
+        }
+
+        .delete-warning-icon {
+          color: #DC2626;
+        }
+
+        .delete-modal-description {
+          font-size: 14.5px;
+          color: var(--text-main);
+          margin-bottom: 10px;
+          line-height: 1.5;
+        }
+
+        .delete-modal-subtext {
+          font-size: 13px;
+          color: var(--text-secondary);
+          margin-bottom: 20px;
+          line-height: 1.5;
+          background: var(--bg-cream-soft);
+          padding: 10px 14px;
+          border-radius: var(--radius-sm);
+          border: 1px solid var(--border-subtle);
+        }
+
+        .delete-modal-subtext code {
+          font-family: var(--font-mono, monospace);
+          font-weight: 700;
+          color: var(--violet-deep);
+        }
+
+        .delete-error-banner {
+          font-size: 13px;
+          color: #DC2626;
+          background: #FEF2F2;
+          border: 1px solid #FCA5A5;
+          padding: 8px 12px;
+          border-radius: var(--radius-sm);
+          margin-bottom: 16px;
+        }
+
+        .delete-danger-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 9px 16px;
+          border-radius: var(--radius-sm);
+          background: #DC2626;
+          color: #FFFFFF;
+          border: none;
+          font-size: 13.5px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.15s ease;
+        }
+
+        .delete-danger-btn:hover:not(:disabled) {
+          background: #B91C1C;
+        }
+
+        .delete-danger-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         .drawer-tabs-row {

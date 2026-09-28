@@ -162,3 +162,69 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { token: string } }
+) {
+  try {
+    const { token } = params;
+    if (!token) {
+      return NextResponse.json({ error: 'Token is required' }, { status: 400 });
+    }
+
+    const supabase = getAdminSupabase();
+    const cleanToken = token.trim();
+
+    let { data: session } = await supabase
+      .from('sessions')
+      .select('id')
+      .eq('token', cleanToken)
+      .maybeSingle();
+
+    if (!session && cleanToken.length === 6 && !cleanToken.includes('-')) {
+      const withDash = `${cleanToken.slice(0, 3)}-${cleanToken.slice(3)}`;
+      const { data: dashMatch } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('token', withDash)
+        .maybeSingle();
+      session = dashMatch;
+    }
+
+    if (!session && cleanToken.includes('-')) {
+      const noDash = cleanToken.replace(/-/g, '');
+      const { data: noDashMatch } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('token', noDash)
+        .maybeSingle();
+      session = noDashMatch;
+    }
+
+    if (!session) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
+    await supabase.from('messages').delete().eq('session_id', session.id);
+    await supabase.from('app_briefs').delete().eq('session_id', session.id);
+
+    const { error } = await supabase
+      .from('sessions')
+      .delete()
+      .eq('id', session.id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Session deleted successfully' });
+  } catch (error: any) {
+    console.error('Delete session error:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+

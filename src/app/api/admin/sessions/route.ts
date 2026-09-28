@@ -67,3 +67,90 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// DELETE /api/admin/sessions: Deletes a session and cascading records (messages, brief)
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const idParam = searchParams.get('id');
+    const tokenParam = searchParams.get('token');
+
+    let id = idParam;
+    let token = tokenParam;
+
+    if (!id && !token) {
+      try {
+        const body = await request.json();
+        id = body.id;
+        token = body.token;
+      } catch {
+        // Request body was empty or not JSON
+      }
+    }
+
+    if (!id && !token) {
+      return NextResponse.json(
+        { error: 'Session id or token is required for deletion' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getAdminSupabase();
+
+    let targetId = id;
+    if (!targetId && token) {
+      const cleanToken = token.trim();
+      const { data: found } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('token', cleanToken)
+        .maybeSingle();
+
+      if (!found && cleanToken.length === 6 && !cleanToken.includes('-')) {
+        const withDash = `${cleanToken.slice(0, 3)}-${cleanToken.slice(3)}`;
+        const { data: dashMatch } = await supabase
+          .from('sessions')
+          .select('id')
+          .eq('token', withDash)
+          .maybeSingle();
+        targetId = dashMatch?.id;
+      } else if (!found && cleanToken.includes('-')) {
+        const noDash = cleanToken.replace(/-/g, '');
+        const { data: noDashMatch } = await supabase
+          .from('sessions')
+          .select('id')
+          .eq('token', noDash)
+          .maybeSingle();
+        targetId = noDashMatch?.id;
+      } else {
+        targetId = found?.id;
+      }
+    }
+
+    if (!targetId) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
+    // Explicitly delete messages and brief to safeguard in case database foreign keys lack CASCADE
+    await supabase.from('messages').delete().eq('session_id', targetId);
+    await supabase.from('app_briefs').delete().eq('session_id', targetId);
+
+    const { error } = await supabase
+      .from('sessions')
+      .delete()
+      .eq('id', targetId);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Session deleted successfully' });
+  } catch (error: any) {
+    console.error('Admin session deletion error:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Failed to delete session' },
+      { status: 500 }
+    );
+  }
+}
+
