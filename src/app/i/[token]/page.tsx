@@ -69,6 +69,7 @@ export default function DiscoverySessionPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [hasExited, setHasExited] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [isSessionNotFound, setIsSessionNotFound] = useState(false);
 
   // Onboarding step
   const [onboardingStep, setOnboardingStep] = useState<'name' | 'consent' | 'chat'>('name');
@@ -102,7 +103,14 @@ export default function DiscoverySessionPage() {
     async function loadSession() {
       try {
         const res = await fetch(`/api/session/${token}`);
-        if (!res.ok) throw new Error('Failed to load session');
+        if (!res.ok) {
+          if (res.status === 404) {
+            setIsSessionNotFound(true);
+            setLoading(false);
+            return;
+          }
+          throw new Error('Failed to load session');
+        }
         const data = await res.json();
         setSession(data.session);
         setMessages(data.messages || []);
@@ -133,6 +141,36 @@ export default function DiscoverySessionPage() {
     }
     loadSession();
   }, [token]);
+
+  // Heartbeat & visibility check to detect if session was deleted or closed remotely
+  useEffect(() => {
+    if (!token || isCompleted || hasExited || isSessionNotFound) return;
+
+    const checkSessionLiveness = async () => {
+      try {
+        const res = await fetch(`/api/session/${token}`, { method: 'GET' });
+        if (res.status === 404) {
+          setIsSessionNotFound(true);
+        }
+      } catch {
+        // Ignore transient network errors
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkSessionLiveness();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const interval = setInterval(checkSessionLiveness, 20000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(interval);
+    };
+  }, [token, isCompleted, hasExited, isSessionNotFound]);
 
   // Cleanup voice recognition & audio stream on unmount
   useEffect(() => {
@@ -310,6 +348,10 @@ export default function DiscoverySessionPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_name: nameInput.trim() }),
       });
+      if (res.status === 404) {
+        setIsSessionNotFound(true);
+        return;
+      }
       const data = await res.json();
       setSession(data.session);
       setOnboardingStep('consent');
@@ -330,6 +372,10 @@ export default function DiscoverySessionPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ consent_given: true, status: 'in_progress' }),
       });
+      if (res.status === 404) {
+        setIsSessionNotFound(true);
+        return;
+      }
       const data = await res.json();
       setSession(data.session);
       setOnboardingStep('chat');
@@ -377,6 +423,10 @@ export default function DiscoverySessionPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token }),
       });
+      if (res.status === 404) {
+        setIsSessionNotFound(true);
+        return;
+      }
       const data = await res.json();
       if (!res.ok || !data.brief) {
         throw new Error(data?.error || 'Failed to synthesize app brief');
@@ -445,6 +495,11 @@ export default function DiscoverySessionPage() {
         }),
       });
 
+      if (res.status === 404) {
+        setIsSessionNotFound(true);
+        return;
+      }
+
       if (!res.ok) throw new Error('Failed to send message');
       const data = await res.json();
 
@@ -490,6 +545,10 @@ export default function DiscoverySessionPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, feedbackNotes: notes }),
       });
+      if (res.status === 404) {
+        setIsSessionNotFound(true);
+        return;
+      }
       const data = await res.json();
       setGeneratedBrief(data.brief);
       setIsCompleted(true);
@@ -508,6 +567,67 @@ export default function DiscoverySessionPage() {
         <EnosOrb state="thinking" size={100} />
         <style jsx>{`
           .discovery-fullscreen { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100dvh; }
+        `}</style>
+      </div>
+    );
+  }
+
+  // Session Not Found or Closed Screen
+  if (isSessionNotFound) {
+    return (
+      <div className="discovery-fullscreen session-ended-screen">
+        <EnosOrb state="idle" size={90} />
+        <h2 className="ended-title">Session Closed</h2>
+        <p className="ended-desc">
+          This discovery session is no longer available or has been ended by an administrator.
+        </p>
+        <p className="ended-subtext">
+          If you are looking to start a new app discovery with Every Nation GG, please visit our homepage.
+        </p>
+        <a href="/" className="visien-btn-primary return-home-btn">
+          <span>Return to Homepage</span>
+        </a>
+        <style jsx>{`
+          .discovery-fullscreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100dvh;
+            padding: 32px 20px;
+            text-align: center;
+          }
+          .session-ended-screen {
+            gap: 12px;
+          }
+          .ended-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-top: 18px;
+            margin-bottom: 4px;
+          }
+          .ended-desc {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            max-width: 420px;
+            line-height: 1.5;
+            margin-bottom: 6px;
+          }
+          .ended-subtext {
+            font-size: 13.5px;
+            color: var(--text-muted);
+            max-width: 380px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+          }
+          .return-home-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 24px;
+            text-decoration: none;
+          }
         `}</style>
       </div>
     );

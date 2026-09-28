@@ -49,6 +49,63 @@ export default function AdminDashboardPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Multi-Session Selection State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null);
+
+  const toggleSelectSession = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllVisible = () => {
+    const visibleIds = filteredSessions.map((s) => s.id);
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+    if (allSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkDeleting(true);
+    setBulkDeleteError(null);
+    try {
+      const res = await fetch('/api/admin/sessions', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete selected sessions');
+      }
+
+      // Close drawer if open session was one of deleted
+      if (selectedSession && selectedIds.includes(selectedSession.id)) {
+        setSelectedSession(null);
+      }
+
+      setSessions((prev) => prev.filter((s) => !selectedIds.includes(s.id)));
+      setSelectedIds([]);
+      setShowBulkDeleteModal(false);
+    } catch (err: any) {
+      console.error('Error in bulk delete:', err);
+      setBulkDeleteError(err.message || 'Failed to delete selected sessions');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   const handleDeleteSession = async () => {
     if (!sessionToDelete) return;
     setIsDeleting(true);
@@ -68,6 +125,7 @@ export default function AdminDashboardPage() {
       }
 
       setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
+      setSelectedIds((prev) => prev.filter((id) => id !== sessionToDelete.id));
       setSessionToDelete(null);
     } catch (err: any) {
       console.error('Error deleting session:', err);
@@ -335,6 +393,44 @@ export default function AdminDashboardPage() {
           </button>
         </div>
 
+        {/* Bulk Actions Bar */}
+        {selectedIds.length > 0 && (
+          <div className="bulk-actions-bar">
+            <div className="bulk-actions-left">
+              <span className="bulk-selection-count">
+                {selectedIds.length} session{selectedIds.length > 1 ? 's' : ''} selected
+              </span>
+              <button
+                type="button"
+                className="bulk-action-text-btn"
+                onClick={handleSelectAllVisible}
+              >
+                {filteredSessions.length > 0 && filteredSessions.every((s) => selectedIds.includes(s.id))
+                  ? 'Deselect Page'
+                  : `Select All Visible (${filteredSessions.length})`}
+              </button>
+              <button
+                type="button"
+                className="bulk-action-text-btn"
+                onClick={handleClearSelection}
+              >
+                Clear Selection
+              </button>
+            </div>
+            <button
+              type="button"
+              className="delete-danger-btn bulk-delete-trigger-btn"
+              onClick={() => {
+                setBulkDeleteError(null);
+                setShowBulkDeleteModal(true);
+              }}
+            >
+              <Trash2 size={15} />
+              <span>Delete Selected ({selectedIds.length})</span>
+            </button>
+          </div>
+        )}
+
         {/* Sessions Table / Cards */}
         {loading ? (
           <div className="loading-state">
@@ -353,18 +449,33 @@ export default function AdminDashboardPage() {
             {filteredSessions.map((s) => {
               const brief = Array.isArray(s.app_briefs) ? s.app_briefs[0] : s.app_briefs;
               const shareUrl = `${getBaseUrl()}/i/${s.token}`;
+              const isSelected = selectedIds.includes(s.id);
 
               return (
                 <div
                   key={s.id}
-                  className="visien-card session-card"
+                  className={`visien-card session-card ${isSelected ? 'selected' : ''}`}
                   onClick={() => openSessionDetails(s)}
                 >
                   <div className="session-card-header">
-                    <div>
-                      <span className={`status-pill ${s.status}`}>
-                        {s.status.replace('_', ' ')}
-                      </span>
+                    <div className="client-info-col">
+                      <div className="session-top-meta">
+                        <button
+                          type="button"
+                          className={`session-checkbox ${isSelected ? 'checked' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSelectSession(s.id);
+                          }}
+                          title={isSelected ? 'Deselect session' : 'Select session'}
+                          aria-label="Select session"
+                        >
+                          {isSelected ? <Check size={11} strokeWidth={3} /> : null}
+                        </button>
+                        <span className={`status-pill ${s.status}`}>
+                          {s.status.replace('_', ' ')}
+                        </span>
+                      </div>
                       <h3 className="client-heading">
                         {s.client_name || 'Unnamed Client'}
                         {s.company && <span className="company-tag"> • {s.company}</span>}
@@ -595,6 +706,75 @@ export default function AdminDashboardPage() {
               >
                 <Trash2 size={15} />
                 <span>{isDeleting ? 'Deleting...' : 'Delete Permanently'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <div
+          className="modal-backdrop"
+          onClick={() => !isBulkDeleting && setShowBulkDeleteModal(false)}
+        >
+          <div
+            className="visien-card modal-card delete-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="delete-modal-icon-wrap">
+              <AlertTriangle size={24} className="delete-warning-icon" />
+            </div>
+
+            <h2 className="modal-title">Delete {selectedIds.length} Sessions?</h2>
+            <p className="delete-modal-description">
+              Are you sure you want to permanently delete the <strong>{selectedIds.length}</strong> selected discovery sessions?
+            </p>
+
+            <div className="bulk-delete-preview-list">
+              {sessions
+                .filter((s) => selectedIds.includes(s.id))
+                .slice(0, 5)
+                .map((s) => (
+                  <div key={s.id} className="bulk-delete-item">
+                    <span className="bulk-item-name">{s.client_name || 'Unnamed Client'}</span>
+                    <code className="bulk-item-code">{s.token}</code>
+                  </div>
+                ))}
+              {selectedIds.length > 5 && (
+                <div className="bulk-item-more">
+                  + {selectedIds.length - 5} more sessions
+                </div>
+              )}
+            </div>
+
+            <div className="delete-modal-subtext">
+              All conversation transcripts, messages, and synthesized app briefs for these {selectedIds.length} sessions will be permanently removed. This action cannot be undone.
+            </div>
+
+            {bulkDeleteError && (
+              <div className="delete-error-banner">
+                {bulkDeleteError}
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="visien-btn-secondary"
+                onClick={() => setShowBulkDeleteModal(false)}
+                disabled={isBulkDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="delete-danger-btn"
+                onClick={handleConfirmBulkDelete}
+                disabled={isBulkDeleting}
+              >
+                <Trash2 size={15} />
+                <span>{isBulkDeleting ? 'Deleting...' : `Delete ${selectedIds.length} Sessions`}</span>
               </button>
             </div>
           </div>
@@ -1301,6 +1481,134 @@ export default function AdminDashboardPage() {
         .delete-danger-btn:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+        }
+
+        /* Multi-Select & Bulk Actions */
+        .session-top-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 6px;
+        }
+
+        .session-checkbox {
+          width: 17px;
+          height: 17px;
+          border-radius: 4px;
+          border: 1.5px solid rgba(120, 113, 108, 0.3);
+          background: #FFFFFF;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          transition: all 0.15s ease;
+          color: #FFFFFF;
+        }
+
+        .session-card:hover .session-checkbox,
+        .session-checkbox.checked {
+          border-color: var(--violet-primary);
+        }
+
+        .session-checkbox.checked {
+          background: var(--violet-primary);
+        }
+
+        .session-card.selected {
+          border-color: rgba(124, 58, 237, 0.45);
+          box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35);
+          background: #FCFAFF;
+        }
+
+        .bulk-actions-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #FFFFFF;
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+          padding: 12px 18px;
+          margin-bottom: 20px;
+          box-shadow: var(--shadow-sm);
+        }
+
+        .bulk-actions-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .bulk-selection-count {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--violet-deep);
+          background: var(--violet-soft);
+          padding: 4px 10px;
+          border-radius: var(--radius-full);
+        }
+
+        .bulk-action-text-btn {
+          background: none;
+          border: none;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          cursor: pointer;
+          padding: 4px 6px;
+          border-radius: var(--radius-sm);
+          transition: color 0.15s ease;
+        }
+
+        .bulk-action-text-btn:hover {
+          color: var(--violet-primary);
+        }
+
+        .bulk-delete-trigger-btn {
+          padding: 7px 14px;
+          font-size: 13px;
+        }
+
+        .bulk-delete-preview-list {
+          max-height: 150px;
+          overflow-y: auto;
+          background: var(--bg-cream-soft);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-sm);
+          padding: 8px 12px;
+          margin-bottom: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .bulk-delete-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 13px;
+        }
+
+        .bulk-item-name {
+          font-weight: 600;
+          color: var(--text-main);
+        }
+
+        .bulk-item-code {
+          font-family: var(--font-mono, monospace);
+          font-size: 11.5px;
+          color: var(--violet-deep);
+          background: rgba(124, 58, 237, 0.08);
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+
+        .bulk-item-more {
+          font-size: 12px;
+          color: var(--text-muted);
+          text-align: center;
+          margin-top: 4px;
         }
 
         .drawer-tabs-row {

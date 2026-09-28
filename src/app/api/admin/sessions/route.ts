@@ -68,19 +68,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE /api/admin/sessions: Deletes a session and cascading records (messages, brief)
+// DELETE /api/admin/sessions: Deletes one or multiple sessions and cascading records (messages, brief)
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const idParam = searchParams.get('id');
     const tokenParam = searchParams.get('token');
+    const idsParam = searchParams.get('ids');
 
+    let ids: string[] = idsParam
+      ? idsParam.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
     let id = idParam;
     let token = tokenParam;
 
-    if (!id && !token) {
+    if (!id && !token && ids.length === 0) {
       try {
         const body = await request.json();
+        if (body.ids && Array.isArray(body.ids)) {
+          ids = body.ids.filter((item: any) => typeof item === 'string' && item.trim());
+        }
         id = body.id;
         token = body.token;
       } catch {
@@ -88,15 +95,37 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    if (!id && !token) {
+    if (!id && !token && ids.length === 0) {
       return NextResponse.json(
-        { error: 'Session id or token is required for deletion' },
+        { error: 'Session ID, token, or list of IDs is required for deletion' },
         { status: 400 }
       );
     }
 
     const supabase = getAdminSupabase();
 
+    // 1. Batch deletion if multiple IDs provided
+    if (ids.length > 0) {
+      await supabase.from('messages').delete().in('session_id', ids);
+      await supabase.from('app_briefs').delete().in('session_id', ids);
+
+      const { error } = await supabase
+        .from('sessions')
+        .delete()
+        .in('id', ids);
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        deletedCount: ids.length,
+        message: `Successfully deleted ${ids.length} session(s)`,
+      });
+    }
+
+    // 2. Single deletion branch
     let targetId = id;
     if (!targetId && token) {
       const cleanToken = token.trim();
