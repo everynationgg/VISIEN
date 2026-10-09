@@ -29,12 +29,12 @@ create table if not exists public.sessions (
   client_clarification_replied_at timestamptz
 );
 
--- Migration helpers if table already exists:
--- alter table public.sessions add column if not exists project_status text default 'received';
--- alter table public.sessions add column if not exists project_status_note text;
--- alter table public.sessions add column if not exists project_status_updated_at timestamptz default now();
--- alter table public.sessions add column if not exists client_clarification_reply text;
--- alter table public.sessions add column if not exists client_clarification_replied_at timestamptz;
+-- Migration helpers for existing database:
+alter table public.sessions add column if not exists project_status text default 'received';
+alter table public.sessions add column if not exists project_status_note text;
+alter table public.sessions add column if not exists project_status_updated_at timestamptz default now();
+alter table public.sessions add column if not exists client_clarification_reply text;
+alter table public.sessions add column if not exists client_clarification_replied_at timestamptz;
 create index if not exists idx_sessions_token on public.sessions(token);
 create index if not exists idx_sessions_status on public.sessions(status);
 

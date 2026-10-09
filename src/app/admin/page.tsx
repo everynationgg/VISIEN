@@ -240,7 +240,16 @@ export default function AdminDashboardPage() {
           project_status_note: noteToSave,
         }),
       });
-      if (!res.ok) throw new Error('Failed to update project status');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const rawMsg = errData.error || 'Failed to update project status';
+        if (rawMsg.includes('project_status') || rawMsg.includes('column') || rawMsg.includes('relation')) {
+          throw new Error(
+            `Database column missing: Please run the SQL migration query in your Supabase SQL Editor.\n\nDetails: ${rawMsg}`
+          );
+        }
+        throw new Error(rawMsg);
+      }
       const data = await res.json();
       setSelectedSession((prev: any) => ({ ...prev, ...data.session }));
       setProjectStatusInput(data.session.project_status || 'received');
@@ -251,9 +260,9 @@ export default function AdminDashboardPage() {
       );
       setStatusSaveSuccess(true);
       setTimeout(() => setStatusSaveSuccess(false), 2500);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to save project status');
+      alert(err.message || 'Failed to save project status');
     } finally {
       setIsSavingProjectStatus(false);
     }
