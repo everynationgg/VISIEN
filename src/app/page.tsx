@@ -42,6 +42,7 @@ export default function HomePage() {
         {/* Private Token Entry Box */}
         <div className="visien-card token-card">
           <p className="token-label">Enter your 6-digit session code or link</p>
+          <p className="token-hint">Begin your discovery, resume where you left off, or track live status.</p>
           <form onSubmit={handleJoin} className="token-form">
             <input
               type="text"
@@ -57,7 +58,7 @@ export default function HomePage() {
               className="visien-btn-primary enter-btn"
               disabled={!tokenInput.trim()}
             >
-              <span>Enter Session</span>
+              <span>Enter / Track</span>
               <ArrowRight size={16} />
             </button>
           </form>
@@ -146,9 +147,16 @@ export default function HomePage() {
 
         .token-label {
           font-size: 13.5px;
-          font-weight: 600;
+          font-weight: 700;
           color: var(--text-main);
-          margin-bottom: 12px;
+          margin-bottom: 4px;
+        }
+
+        .token-hint {
+          font-size: 12px;
+          color: var(--text-muted);
+          margin-bottom: 14px;
+          line-height: 1.4;
         }
 
         .token-form {

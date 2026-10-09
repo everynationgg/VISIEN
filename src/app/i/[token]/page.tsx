@@ -6,6 +6,7 @@ import { EnosOrb, OrbState } from '@/components/EnosOrb';
 import { ChapterProgress } from '@/components/ChapterProgress';
 import { SuggestionChips } from '@/components/SuggestionChips';
 import { ReviewDeck } from '@/components/ReviewDeck';
+import { ClientProjectTracker } from '@/components/ClientProjectTracker';
 import { CORE_QUESTIONS } from '@/lib/questions';
 import { Session, Message, AppBrief } from '@/lib/types';
 import { Send, Mic, MicOff, ArrowRight, CheckCircle2, Copy, Check, Sparkles } from 'lucide-react';
@@ -651,30 +652,55 @@ export default function DiscoverySessionPage() {
     );
   }
 
-  // Completed screen
-  if (isCompleted) {
+  // Refresh Session for Client Tracker
+  const handleRefreshSession = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/session/${token}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSession(data.session);
+        if (data.brief) setGeneratedBrief(data.brief);
+        if (data.messages) setMessages(data.messages);
+      }
+    } catch (e) {
+      console.error('Refresh session error:', e);
+    }
+  }, [token]);
+
+  // Submit Clarification reply for Client Tracker
+  const handleClarificationSubmit = useCallback(async (replyText: string): Promise<boolean> => {
+    if (!token || !replyText.trim()) return false;
+    try {
+      const res = await fetch(`/api/session/${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_clarification_reply: replyText.trim(),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSession(data.session);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Clarification submit error:', err);
+      return false;
+    }
+  }, [token]);
+
+  // Completed screen (Client Live Project Tracker)
+  if (isCompleted && session) {
     return (
-      <div className="discovery-fullscreen completed-screen">
-        <div className="completed-icon"><CheckCircle2 size={48} color="var(--violet-primary)" /></div>
-        <h1 className="completed-title">Your Vision is Submitted</h1>
-        <p className="completed-desc">
-          Thank you, <strong>{session?.client_name}</strong>. Your app vision for <strong>{generatedBrief?.project_title || 'your project'}</strong> has been delivered to the team at <strong>Every Nation GG</strong>. They'll be in touch soon.
-        </p>
-        {messages.length > 0 && (
-          <button type="button" className="visien-btn-secondary copy-transcript-btn" onClick={copyTranscript}>
-            {copied ? <Check size={15} /> : <Copy size={15} />}
-            <span>{copied ? 'Copied!' : 'Copy Full Conversation'}</span>
-          </button>
-        )}
-        <style jsx>{`
-          .discovery-fullscreen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100dvh; padding:32px 20px; text-align:center; }
-          .completed-screen { gap:16px; }
-          .completed-icon { }
-          .completed-title { font-size:26px; font-weight:800; color:var(--text-main); }
-          .completed-desc { font-size:15px; color:var(--text-secondary); max-width:440px; line-height:1.6; }
-          .copy-transcript-btn { display:inline-flex; align-items:center; gap:8px; margin-top:8px; }
-        `}</style>
-      </div>
+      <ClientProjectTracker
+        session={session}
+        brief={generatedBrief}
+        messages={messages}
+        onRefresh={handleRefreshSession}
+        onClarificationSubmit={handleClarificationSubmit}
+      />
     );
   }
 

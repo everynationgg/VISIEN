@@ -1,5 +1,12 @@
 export type SessionStatus = 'not_started' | 'in_progress' | 'completed' | 'expired';
 
+export type ProjectProgressStatus =
+  | 'received'
+  | 'needs_info'
+  | 'conceptualizing'
+  | 'processing'
+  | 'ready';
+
 export interface Session {
   id: string;
   token: string;
@@ -13,6 +20,12 @@ export interface Session {
   updated_at: string;
   completed_at: string | null;
   expires_at: string | null;
+  // Project tracking fields
+  project_status?: ProjectProgressStatus;
+  project_status_note?: string | null;
+  project_status_updated_at?: string | null;
+  client_clarification_reply?: string | null;
+  client_clarification_replied_at?: string | null;
 }
 
 export type MessageRole = 'enos' | 'client' | 'system';

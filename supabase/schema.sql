@@ -20,10 +20,21 @@ create table if not exists public.sessions (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   completed_at timestamptz,
-  expires_at timestamptz
+  expires_at timestamptz,
+  -- Project tracking fields for completed discovery
+  project_status text not null default 'received' check (project_status in ('received', 'needs_info', 'conceptualizing', 'processing', 'ready')),
+  project_status_note text,
+  project_status_updated_at timestamptz default now(),
+  client_clarification_reply text,
+  client_clarification_replied_at timestamptz
 );
 
--- Index for instant lookup by private invitation token
+-- Migration helpers if table already exists:
+-- alter table public.sessions add column if not exists project_status text default 'received';
+-- alter table public.sessions add column if not exists project_status_note text;
+-- alter table public.sessions add column if not exists project_status_updated_at timestamptz default now();
+-- alter table public.sessions add column if not exists client_clarification_reply text;
+-- alter table public.sessions add column if not exists client_clarification_replied_at timestamptz;
 create index if not exists idx_sessions_token on public.sessions(token);
 create index if not exists idx_sessions_status on public.sessions(status);
 

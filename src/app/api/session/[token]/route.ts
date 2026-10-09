@@ -99,6 +99,7 @@ export async function PATCH(
       'current_question_index',
       'current_chapter',
       'completed_at',
+      'client_clarification_reply',
     ];
 
     const updatePayload: Record<string, any> = {
@@ -109,6 +110,10 @@ export async function PATCH(
       if (body[key] !== undefined) {
         updatePayload[key] = body[key];
       }
+    }
+
+    if (body.client_clarification_reply !== undefined) {
+      updatePayload.client_clarification_replied_at = new Date().toISOString();
     }
 
     const cleanToken = token.trim();

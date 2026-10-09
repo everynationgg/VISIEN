@@ -183,3 +183,49 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
+// PATCH /api/admin/sessions: Updates session project progress status & notes
+export async function PATCH(request: NextRequest) {
+  try {
+    const { id, project_status, project_status_note } = await request.json();
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Session ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getAdminSupabase();
+    const updatePayload: Record<string, any> = {
+      project_status_updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    if (project_status !== undefined) {
+      updatePayload.project_status = project_status;
+    }
+    if (project_status_note !== undefined) {
+      updatePayload.project_status_note = project_status_note;
+    }
+
+    const { data: updatedSession, error } = await supabase
+      .from('sessions')
+      .update(updatePayload)
+      .eq('id', id)
+      .select('*, app_briefs(*)')
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ session: updatedSession });
+  } catch (error: any) {
+    console.error('Admin session project status update error:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Failed to update session status' },
+      { status: 500 }
+    );
+  }
+}
+

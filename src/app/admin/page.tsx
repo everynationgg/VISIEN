@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Session, AppBrief, Message } from '@/lib/types';
+import { Session, AppBrief, Message, ProjectProgressStatus } from '@/lib/types';
 import {
   Sparkles,
   Plus,
@@ -16,12 +16,17 @@ import {
   RefreshCw,
   Trash2,
   AlertTriangle,
+  Mail,
+  Send,
+  AlertCircle,
+  CheckCircle2,
+  Cpu,
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'completed' | 'in_progress' | 'not_started'>('all');
+  const [filter, setFilter] = useState<'all' | 'needs_info' | 'completed' | 'in_progress' | 'not_started'>('all');
 
   // New Session Form State
   const [showNewModal, setShowNewModal] = useState(false);
@@ -43,6 +48,12 @@ export default function AdminDashboardPage() {
   const [copiedTranscript, setCopiedTranscript] = useState(false);
   const [copiedBrief, setCopiedBrief] = useState(false);
   const [isGeneratingBrief, setIsGeneratingBrief] = useState(false);
+
+  // Project Progress Pipeline Control State
+  const [projectStatusInput, setProjectStatusInput] = useState<ProjectProgressStatus>('received');
+  const [projectStatusNoteInput, setProjectStatusNoteInput] = useState<string>('');
+  const [isSavingProjectStatus, setIsSavingProjectStatus] = useState<boolean>(false);
+  const [statusSaveSuccess, setStatusSaveSuccess] = useState<boolean>(false);
 
   // Delete Session Confirmation State
   const [sessionToDelete, setSessionToDelete] = useState<any | null>(null);
@@ -181,6 +192,10 @@ export default function AdminDashboardPage() {
 
   const openSessionDetails = async (session: any) => {
     setSelectedSession(session);
+    setProjectStatusInput(session.project_status || 'received');
+    setProjectStatusNoteInput(session.project_status_note || '');
+    setStatusSaveSuccess(false);
+
     const initialBrief = Array.isArray(session.app_briefs)
       ? session.app_briefs[0]
       : session.app_briefs;
@@ -195,12 +210,60 @@ export default function AdminDashboardPage() {
       }
       if (data.session) {
         setSelectedSession((prev: any) => ({ ...prev, ...data.session }));
+        setProjectStatusInput(data.session.project_status || 'received');
+        setProjectStatusNoteInput(data.session.project_status_note || '');
       }
     } catch (err) {
       console.error('Error fetching session details:', err);
     } finally {
       setLoadingDetails(false);
     }
+  };
+
+  const handleSaveProjectStatus = async (
+    overrideStatus?: ProjectProgressStatus,
+    overrideNote?: string
+  ) => {
+    if (!selectedSession) return;
+    const statusToSave = overrideStatus || projectStatusInput;
+    const noteToSave = overrideNote !== undefined ? overrideNote : projectStatusNoteInput;
+
+    setIsSavingProjectStatus(true);
+    setStatusSaveSuccess(false);
+    try {
+      const res = await fetch('/api/admin/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedSession.id,
+          project_status: statusToSave,
+          project_status_note: noteToSave,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update project status');
+      const data = await res.json();
+      setSelectedSession((prev: any) => ({ ...prev, ...data.session }));
+      setProjectStatusInput(data.session.project_status || 'received');
+      setProjectStatusNoteInput(data.session.project_status_note || '');
+      // Update in sessions list
+      setSessions((prev) =>
+        prev.map((s) => (s.id === data.session.id ? { ...s, ...data.session } : s))
+      );
+      setStatusSaveSuccess(true);
+      setTimeout(() => setStatusSaveSuccess(false), 2500);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save project status');
+    } finally {
+      setIsSavingProjectStatus(false);
+    }
+  };
+
+  const handleAdvanceToConceptualizing = () => {
+    handleSaveProjectStatus(
+      'conceptualizing',
+      'Clarification received! We are now conceptualizing your application architecture.'
+    );
   };
 
   const copyFullTranscript = () => {
@@ -312,6 +375,7 @@ export default function AdminDashboardPage() {
 
   const filteredSessions = sessions.filter((s) => {
     if (filter === 'all') return true;
+    if (filter === 'needs_info') return s.project_status === 'needs_info';
     return s.status === filter;
   });
 
@@ -321,6 +385,8 @@ export default function AdminDashboardPage() {
     }
     return 'https://visien.engg.online';
   };
+
+  const needsInfoCount = sessions.filter((s) => s.project_status === 'needs_info').length;
 
   return (
     <div className="admin-container">
@@ -369,6 +435,13 @@ export default function AdminDashboardPage() {
             onClick={() => setFilter('all')}
           >
             All Sessions ({sessions.length})
+          </button>
+          <button
+            type="button"
+            className={`visien-chip chip-needs-info ${filter === 'needs_info' ? 'active' : ''}`}
+            onClick={() => setFilter('needs_info')}
+          >
+            ⚠️ Needs Info ({needsInfoCount})
           </button>
           <button
             type="button"
@@ -475,6 +548,24 @@ export default function AdminDashboardPage() {
                         <span className={`status-pill ${s.status}`}>
                           {s.status.replace('_', ' ')}
                         </span>
+                        {s.status === 'completed' && (
+                          <span className={`pipeline-pill pill-${s.project_status || 'received'}`}>
+                            {s.project_status === 'needs_info'
+                              ? '⚠️ Connecting with You'
+                              : s.project_status === 'conceptualizing'
+                              ? '🎨 Conceptualizing'
+                              : s.project_status === 'processing'
+                              ? '⚙️ Processing Scope'
+                              : s.project_status === 'ready'
+                              ? '✨ Blueprint Ready'
+                              : '📥 Received'}
+                          </span>
+                        )}
+                        {s.client_clarification_reply && (
+                          <span className="client-replied-pill" title={`Client replied: "${s.client_clarification_reply}"`}>
+                            💬 Replied
+                          </span>
+                        )}
                       </div>
                       <h3 className="client-heading">
                         {s.client_name || 'Unnamed Client'}
@@ -819,6 +910,168 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
             </div>
+
+            {/* Project Progress Pipeline Manager */}
+            {selectedSession.status === 'completed' && (
+              <div className="pipeline-control-card">
+                <div className="pipeline-control-header">
+                  <div className="pipeline-title-group">
+                    <Sparkles size={16} className="sparkle-icon" />
+                    <h3 className="pipeline-card-title">Client Progress & Live Status</h3>
+                  </div>
+                  <div className="pipeline-quick-actions">
+                    {selectedSession.email && (
+                      <a
+                        href={`mailto:${selectedSession.email}?subject=Every Nation GG: Regarding your ${selectedBrief?.project_title || 'VISIEN'} App Discovery`}
+                        className="quick-link-btn"
+                        title="Send email to client"
+                      >
+                        <Mail size={13} />
+                        <span>Email Client</span>
+                      </a>
+                    )}
+                    <a
+                      href={`/i/${selectedSession.token}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="quick-link-btn"
+                      title="View exactly what the client sees"
+                    >
+                      <ExternalLink size={13} />
+                      <span>Client Tracker View</span>
+                    </a>
+                  </div>
+                </div>
+
+                <p className="pipeline-control-subtitle">
+                  Select the active milestone and note displayed to the client when they re-enter code <strong>{selectedSession.token}</strong>:
+                </p>
+
+                {/* Stage Selector Buttons */}
+                <div className="pipeline-stage-selector">
+                  {[
+                    { key: 'received', label: '1. Discovery Received', desc: 'Received by ENGG' },
+                    { key: 'needs_info', label: '2. Connecting with You', desc: 'Needs Info' },
+                    { key: 'conceptualizing', label: '3. Conceptualizing', desc: 'Solution Design' },
+                    { key: 'processing', label: '4. Processing Scope', desc: 'Technical Scoping' },
+                    { key: 'ready', label: '5. Blueprint Ready', desc: 'Proposal Ready' },
+                  ].map((st) => (
+                    <button
+                      key={st.key}
+                      type="button"
+                      className={`stage-select-btn ${projectStatusInput === st.key ? 'active' : ''} ${st.key === 'needs_info' ? 'stage-warning' : ''}`}
+                      onClick={() => setProjectStatusInput(st.key as ProjectProgressStatus)}
+                    >
+                      <span className="stage-btn-label">{st.label}</span>
+                      <span className="stage-btn-desc">{st.desc}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* If Client Submitted a Clarification Reply */}
+                {selectedSession.client_clarification_reply && (
+                  <div className="client-reply-received-card">
+                    <div className="client-reply-header">
+                      <MessageSquare size={15} color="#166534" />
+                      <strong>Client Clarification Received ({new Date(selectedSession.client_clarification_replied_at || Date.now()).toLocaleDateString()}):</strong>
+                    </div>
+                    <p className="client-reply-text">"{selectedSession.client_clarification_reply}"</p>
+                    <button
+                      type="button"
+                      className="visien-btn-primary advance-btn"
+                      onClick={handleAdvanceToConceptualizing}
+                      disabled={isSavingProjectStatus}
+                    >
+                      <CheckCircle2 size={14} />
+                      <span>Mark Clarified & Advance to Conceptualizing →</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Status Note to Client */}
+                <div className="pipeline-note-group">
+                  <label className="pipeline-note-label">
+                    Live Note / Question to Client (Visible on client's screen):
+                  </label>
+                  <textarea
+                    className="pipeline-note-textarea"
+                    rows={2}
+                    placeholder="e.g. Needs clarification on your preferred payment gateway or primary MVP target (Web vs iOS/Android)..."
+                    value={projectStatusNoteInput}
+                    onChange={(e) => setProjectStatusNoteInput(e.target.value)}
+                  />
+
+                  {/* Quick Preset Templates */}
+                  <div className="preset-chips-row">
+                    <span className="preset-label">Quick Presets:</span>
+                    <button
+                      type="button"
+                      className="preset-chip"
+                      onClick={() =>
+                        setProjectStatusNoteInput(
+                          'Kindly wait for our engineering lead to contact you via email for a quick 15-minute sync.'
+                        )
+                      }
+                    >
+                      Wait for Email Contact
+                    </button>
+                    <button
+                      type="button"
+                      className="preset-chip"
+                      onClick={() =>
+                        setProjectStatusNoteInput(
+                          'Please clarify whether your MVP launch target is Web, iOS, or Android.'
+                        )
+                      }
+                    >
+                      Ask Target Platform
+                    </button>
+                    <button
+                      type="button"
+                      className="preset-chip"
+                      onClick={() =>
+                        setProjectStatusNoteInput(
+                          'Please clarify your preferred payment gateway (Stripe vs local bank QR).'
+                        )
+                      }
+                    >
+                      Ask Payment Gateway
+                    </button>
+                    <button
+                      type="button"
+                      className="preset-chip"
+                      onClick={() =>
+                        setProjectStatusNoteInput(
+                          'Our architects are actively drafting your system workflows, database models, and technical specifications.'
+                        )
+                      }
+                    >
+                      Drafting Architecture
+                    </button>
+                  </div>
+                </div>
+
+                {/* Save Button Row */}
+                <div className="pipeline-save-row">
+                  <button
+                    type="button"
+                    className="visien-btn-primary save-pipeline-btn"
+                    onClick={() => handleSaveProjectStatus()}
+                    disabled={isSavingProjectStatus}
+                  >
+                    <Send size={14} />
+                    <span>{isSavingProjectStatus ? 'Saving Status...' : 'Save Pipeline Status & Note'}</span>
+                  </button>
+
+                  {statusSaveSuccess && (
+                    <span className="save-success-tag">
+                      <Check size={14} color="#16A34A" />
+                      <span>Status updated live on client portal!</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Tabs: Brief vs Transcript & Copy Actions */}
             <div className="drawer-tabs-row">
@@ -1836,6 +2089,297 @@ export default function AdminDashboardPage() {
           margin-bottom: 5px;
           text-transform: uppercase;
           letter-spacing: 0.04em;
+        }
+
+        /* Pipeline Pills on Session Cards */
+        .chip-needs-info {
+          border-color: rgba(234, 88, 12, 0.3);
+        }
+        .chip-needs-info.active {
+          background: #FFEDD5;
+          color: #C2410C;
+          border-color: #EA580C;
+        }
+
+        .pipeline-pill {
+          display: inline-flex;
+          align-items: center;
+          font-size: 11px;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: var(--radius-full);
+          letter-spacing: 0.02em;
+        }
+
+        .pill-received {
+          background: #F3F4F6;
+          color: #4B5563;
+        }
+
+        .pill-needs_info {
+          background: #FFEDD5;
+          color: #C2410C;
+        }
+
+        .pill-conceptualizing {
+          background: #EDE9FE;
+          color: #6D28D9;
+        }
+
+        .pill-processing {
+          background: #E0E7FF;
+          color: #3730A3;
+        }
+
+        .pill-ready {
+          background: #DCFCE7;
+          color: #15803D;
+        }
+
+        .client-replied-pill {
+          display: inline-flex;
+          align-items: center;
+          font-size: 11px;
+          font-weight: 700;
+          padding: 2px 7px;
+          border-radius: var(--radius-full);
+          background: #DCFCE7;
+          color: #166534;
+          border: 1px solid #86EFAC;
+        }
+
+        /* Pipeline Control Card in Drawer */
+        .pipeline-control-card {
+          margin: 16px 24px;
+          padding: 20px;
+          background: #FFF;
+          border: 1px solid rgba(124, 58, 237, 0.2);
+          border-radius: var(--radius-md);
+          box-shadow: 0 4px 16px rgba(124, 58, 237, 0.06);
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+
+        .pipeline-control-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .pipeline-title-group {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .pipeline-card-title {
+          font-size: 15.5px;
+          font-weight: 800;
+          color: var(--text-main);
+        }
+
+        .pipeline-control-subtitle {
+          font-size: 13px;
+          color: var(--text-secondary);
+          line-height: 1.5;
+        }
+
+        .pipeline-quick-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .quick-link-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 5px 10px;
+          background: var(--bg-cream);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-sm);
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          text-decoration: none;
+          transition: all var(--transition-fast);
+        }
+
+        .quick-link-btn:hover {
+          color: var(--violet-deep);
+          border-color: var(--violet-primary);
+        }
+
+        .pipeline-stage-selector {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+          gap: 8px;
+        }
+
+        .stage-select-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          padding: 10px 12px;
+          background: var(--bg-cream-soft);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          text-align: left;
+          transition: all var(--transition-fast);
+        }
+
+        .stage-select-btn:hover {
+          border-color: var(--violet-primary);
+        }
+
+        .stage-select-btn.active {
+          background: var(--violet-soft);
+          border-color: var(--violet-primary);
+          box-shadow: 0 0 0 1px var(--violet-primary);
+        }
+
+        .stage-select-btn.stage-warning.active {
+          background: #FFEDD5;
+          border-color: #EA580C;
+          box-shadow: 0 0 0 1px #EA580C;
+        }
+
+        .stage-btn-label {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-main);
+        }
+
+        .stage-btn-desc {
+          font-size: 11px;
+          color: var(--text-muted);
+          margin-top: 2px;
+        }
+
+        .stage-select-btn.active .stage-btn-desc {
+          color: var(--violet-deep);
+        }
+
+        .stage-select-btn.stage-warning.active .stage-btn-desc {
+          color: #C2410C;
+        }
+
+        .client-reply-received-card {
+          padding: 12px 14px;
+          background: #F0FDF4;
+          border: 1px solid #86EFAC;
+          border-radius: var(--radius-sm);
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .client-reply-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12.5px;
+          color: #166534;
+        }
+
+        .client-reply-text {
+          font-size: 13.5px;
+          color: #14532D;
+          font-style: italic;
+          line-height: 1.4;
+        }
+
+        .advance-btn {
+          align-self: flex-start;
+          margin-top: 4px;
+          padding: 6px 14px;
+          font-size: 12.5px;
+          gap: 6px;
+        }
+
+        .pipeline-note-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .pipeline-note-label {
+          font-size: 12.5px;
+          font-weight: 700;
+          color: var(--text-main);
+        }
+
+        .pipeline-note-textarea {
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: var(--radius-sm);
+          border: 1px solid var(--border-subtle);
+          font-size: 13.5px;
+          font-family: inherit;
+          resize: vertical;
+          outline: none;
+          background: #FAF7F2;
+          color: var(--text-main);
+        }
+
+        .pipeline-note-textarea:focus {
+          border-color: var(--violet-primary);
+          background: #FFF;
+        }
+
+        .preset-chips-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+          margin-top: 2px;
+        }
+
+        .preset-label {
+          font-size: 11.5px;
+          color: var(--text-muted);
+          font-weight: 600;
+        }
+
+        .preset-chip {
+          padding: 3px 8px;
+          background: var(--bg-cream-soft);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-full);
+          font-size: 11.5px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .preset-chip:hover {
+          border-color: var(--violet-primary);
+          color: var(--violet-deep);
+        }
+
+        .pipeline-save-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .save-pipeline-btn {
+          padding: 8px 18px;
+          font-size: 13px;
+          gap: 6px;
+        }
+
+        .save-success-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 12.5px;
+          font-weight: 600;
+          color: #166534;
         }
       `}</style>
     </div>
