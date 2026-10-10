@@ -2,54 +2,75 @@ const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
-// Read .env.local
-const envPath = path.resolve(__dirname, '..', '.env.local');
-const envContent = fs.readFileSync(envPath, 'utf8');
-let databaseUrl = '';
-for (const line of envContent.split('\n')) {
-  if (line.startsWith('DATABASE_URL=')) {
-    databaseUrl = line.substring('DATABASE_URL='.length).trim();
+// Parse .env.local manually
+try {
+  const envContent = fs.readFileSync(path.join(__dirname, '..', '.env.local'), 'utf-8');
+  envContent.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx !== -1) {
+        const key = trimmed.slice(0, eqIdx).trim();
+        const val = trimmed.slice(eqIdx + 1).trim();
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+  });
+} catch (e) {
+  console.warn('Could not read .env.local file directly:', e.message);
+}
+
+async function runMigration() {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    console.error('DATABASE_URL not found in .env.local');
+    process.exit(1);
+  }
+
+  console.log('Connecting to Supabase PostgreSQL database...');
+  const client = new Client({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  try {
+    await client.connect();
+    console.log('Connected successfully!');
+
+    const sql = `
+      -- Add project status tracking columns if they do not exist
+      alter table public.sessions add column if not exists project_status text default 'received';
+      alter table public.sessions add column if not exists project_status_note text;
+      alter table public.sessions add column if not exists project_status_updated_at timestamptz default now();
+      alter table public.sessions add column if not exists client_clarification_reply text;
+      alter table public.sessions add column if not exists client_clarification_replied_at timestamptz;
+    `;
+
+    console.log('Running migration SQL...');
+    await client.query(sql);
+    console.log('Migration SQL executed successfully!');
+
+    // Verify columns on public.sessions
+    const res = await client.query(`
+      select column_name, data_type, column_default 
+      from information_schema.columns 
+      where table_schema = 'public' and table_name = 'sessions'
+      order by ordinal_position;
+    `);
+
+    console.log('Current columns in public.sessions:');
+    res.rows.forEach(r => {
+      console.log(` - ${r.column_name} (${r.data_type}) [default: ${r.column_default}]`);
+    });
+
+  } catch (err) {
+    console.error('Migration failed:', err);
+    process.exit(1);
+  } finally {
+    await client.end();
   }
 }
 
-if (!databaseUrl) {
-  console.error('DATABASE_URL not found in .env.local');
-  process.exit(1);
-}
-
-const client = new Client({
-  connectionString: databaseUrl,
-  ssl: { rejectUnauthorized: false }
-});
-
-async function run() {
-  await client.connect();
-  console.log('Connected to Supabase Postgres!');
-
-  const query = `
-    ALTER TABLE public.app_briefs ADD COLUMN IF NOT EXISTS target_platform text;
-    ALTER TABLE public.app_briefs ADD COLUMN IF NOT EXISTS payments_integrations text;
-    ALTER TABLE public.app_briefs ADD COLUMN IF NOT EXISTS target_timeline text;
-  `;
-
-  await client.query(query);
-  console.log('Successfully executed migration on Supabase: added target_platform, payments_integrations, and target_timeline columns.');
-
-  // Verify columns on app_briefs
-  const res = await client.query(`
-    SELECT column_name, data_type 
-    FROM information_schema.columns 
-    WHERE table_name = 'app_briefs'
-    ORDER BY ordinal_position;
-  `);
-
-  console.log('Current columns in public.app_briefs:');
-  console.table(res.rows);
-
-  await client.end();
-}
-
-run().catch((err) => {
-  console.error('Migration failed:', err);
-  process.exit(1);
-});
+runMigration();
