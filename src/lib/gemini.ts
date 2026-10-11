@@ -246,8 +246,13 @@ Extract into JSON matching this exact structure:
   "vision_summary": "2-3 sentences capturing the core idea from the client's own words",
   "problem_statement": "The core problem/friction the client described",
   "target_users": "Who uses this app as the client described",
+  "user_roles": "Different types of user roles, permissions, or admin access levels described",
   "target_platform": "Target platforms (e.g. iOS & Android App Store, Responsive Web App, Tablet/Desktop, etc.)",
+  "auth_requirements": "Login, onboarding, and authentication methods described (e.g. Phone OTP, Email, Google/Apple, Guest)",
   "payments_integrations": "Payment methods (GCash, Stripe, COD, etc.) and tool/courier integrations as described",
+  "notifications_channels": "Notification channels (Push alerts, SMS receipts, automated emails, in-app feed)",
+  "hardware_capabilities": "Hardware & device capabilities (Camera/QR, GPS, Bluetooth printer, Offline mode)",
+  "data_readiness": "Existing data to migrate (spreadsheets, databases) and brand asset readiness",
   "moment_of_use": "When and where users open the app as described",
   "first_screen_experience": "What user sees first as described (or 'Not specified')",
   "core_action": "The single most important task or user journey as described",
@@ -259,6 +264,7 @@ Extract into JSON matching this exact structure:
   "current_workflow": "How they manage this today as described",
   "v1_essential_features": ["Essential features for launch based on conversation"],
   "target_timeline": "Target launch timeline (e.g. 4-6 weeks, 2-3 months, flexible)",
+  "budget_range": "Target investment or budget range described for V1",
   "future_horizon": "Long-term vision as client described",
   "infrastructure_preference": "Client's infrastructure preference",
   "additional_notes": "Any other specific points mentioned"
@@ -282,3 +288,62 @@ Extract into JSON matching this exact structure:
   const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
   return JSON.parse(cleaned);
 }
+
+/**
+ * Generates an AI visual concept mockup image for the client's app vision
+ * and uploads it to Supabase Storage ('brief-assets').
+ * 100% serverless, zero credit consumption.
+ */
+export async function generateAppConceptImage(
+  sessionId: string,
+  brief: Partial<AppBrief>,
+  supabaseClient: any
+): Promise<string | null> {
+  try {
+    const title = brief.project_title || 'Modern Mobile App';
+    const visual = brief.visual_direction || 'clean minimalist, sleek modern aesthetic';
+    const users = brief.target_users ? `for ${brief.target_users}` : '';
+    const isWeb = (brief.target_platform || '').toLowerCase().includes('web') && !(brief.target_platform || '').toLowerCase().includes('mobile');
+    const platform = isWeb ? 'web application dashboard UI mockup' : 'iOS mobile application UI screen mockup';
+
+    const promptText = `modern elegant ${platform}, app concept for "${title}", ${visual}, ${users}, clean UI design, soft lighting, trending on Dribbble, Figma mockup presentation, high resolution`;
+    const encoded = encodeURIComponent(promptText.slice(0, 320));
+    const genUrl = `https://image.pollinations.ai/prompt/${encoded}?width=768&height=1344&nologo=true&model=flux`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const res = await fetch(genUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      console.warn('Concept image fetch returned status:', res.status);
+      return null;
+    }
+
+    const buffer = await res.arrayBuffer();
+    if (buffer.byteLength < 500) return null;
+
+    const fileName = `${sessionId}-concept-${Date.now()}.jpg`;
+    const { error: uploadError } = await supabaseClient.storage
+      .from('brief-assets')
+      .upload(fileName, Buffer.from(buffer), {
+        contentType: 'image/jpeg',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.warn('Failed to upload concept image to Supabase:', uploadError);
+      return genUrl;
+    }
+
+    const { data: publicData } = supabaseClient.storage
+      .from('brief-assets')
+      .getPublicUrl(fileName);
+
+    return publicData?.publicUrl || genUrl;
+  } catch (err: any) {
+    console.warn('generateAppConceptImage non-critical error:', err?.message);
+    return null;
+  }
+}
+

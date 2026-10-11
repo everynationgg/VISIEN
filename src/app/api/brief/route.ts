@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
-import { generateAppBriefFromTranscript } from '@/lib/gemini';
+import { generateAppBriefFromTranscript, generateAppConceptImage } from '@/lib/gemini';
 
 export async function POST(request: NextRequest) {
   try {
-    const { token, feedbackNotes } = await request.json();
+    const { token, feedbackNotes, conceptImageFeedback, conceptImageNotes } = await request.json();
 
     if (!token) {
       return NextResponse.json({ error: 'Token is required' }, { status: 400 });
@@ -72,6 +72,18 @@ export async function POST(request: NextRequest) {
       messages
     );
 
+    // Check if existing brief has concept_image_url
+    const { data: existingBrief } = await supabase
+      .from('app_briefs')
+      .select('concept_image_url, concept_image_feedback, concept_image_notes')
+      .eq('session_id', session.id)
+      .maybeSingle();
+
+    let conceptImageUrl = existingBrief?.concept_image_url || null;
+    if (!conceptImageUrl) {
+      conceptImageUrl = await generateAppConceptImage(session.id, briefData, supabase);
+    }
+
     // 4. Upsert into app_briefs table
     const briefRecord = {
       session_id: session.id,
@@ -99,8 +111,17 @@ export async function POST(request: NextRequest) {
         ? `Launch Target: ${briefData.target_timeline}${briefData.future_horizon ? ` | Horizon: ${briefData.future_horizon}` : ''}`
         : (briefData.future_horizon || ''),
       target_platform: briefData.target_platform || null,
+      user_roles: briefData.user_roles || null,
+      auth_requirements: briefData.auth_requirements || null,
       payments_integrations: briefData.payments_integrations || null,
+      notifications_channels: briefData.notifications_channels || null,
+      hardware_capabilities: briefData.hardware_capabilities || null,
+      data_readiness: briefData.data_readiness || null,
       target_timeline: briefData.target_timeline || null,
+      budget_range: briefData.budget_range || null,
+      concept_image_url: conceptImageUrl || null,
+      concept_image_feedback: conceptImageFeedback !== undefined ? conceptImageFeedback : (existingBrief?.concept_image_feedback || null),
+      concept_image_notes: conceptImageNotes !== undefined ? conceptImageNotes : (existingBrief?.concept_image_notes || null),
       infrastructure_preference: briefData.infrastructure_preference || 'Unspecified',
       additional_notes: briefData.additional_notes || '',
       raw_json: briefData,
@@ -144,6 +165,16 @@ export async function POST(request: NextRequest) {
                   {
                     name: 'Core Action',
                     value: savedBrief.core_action || 'N/A',
+                    inline: true,
+                  },
+                  {
+                    name: 'Target Platform',
+                    value: savedBrief.target_platform || 'iOS/Android & Web',
+                    inline: true,
+                  },
+                  {
+                    name: 'Target Budget / Range',
+                    value: savedBrief.budget_range || 'Flexible',
                     inline: true,
                   },
                   {

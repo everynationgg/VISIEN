@@ -4,7 +4,7 @@ import React from 'react';
 import { CHAPTERS } from '@/lib/questions';
 
 interface ChapterProgressProps {
-  currentChapter: 1 | 2 | 3;
+  currentChapter: 1 | 2 | 3 | 4;
   currentQuestionIndex: number;
   totalQuestions: number;
 }

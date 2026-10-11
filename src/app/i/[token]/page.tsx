@@ -116,7 +116,9 @@ export default function DiscoverySessionPage() {
         setSession(data.session);
         setMessages(data.messages || []);
 
-        if (data.session.status === 'completed') {
+        const hasUnansweredQuestions = (data.session.current_question_index ?? 0) < CORE_QUESTIONS.length;
+
+        if (data.session.status === 'completed' && !hasUnansweredQuestions) {
           if (data.brief) {
             setGeneratedBrief(data.brief);
             setIsCompleted(true);
@@ -538,13 +540,22 @@ export default function DiscoverySessionPage() {
   };
 
   // Confirm Brief
-  const handleConfirmBrief = async (notes?: string) => {
+  const handleConfirmBrief = async (
+    notes?: string,
+    conceptFeedback?: 'liked' | 'disliked',
+    conceptNotes?: string
+  ) => {
     setIsSending(true);
     try {
       const res = await fetch('/api/brief', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, feedbackNotes: notes }),
+        body: JSON.stringify({
+          token,
+          feedbackNotes: notes,
+          conceptImageFeedback: conceptFeedback,
+          conceptImageNotes: conceptNotes,
+        }),
       });
       if (res.status === 404) {
         setIsSessionNotFound(true);
@@ -700,6 +711,10 @@ export default function DiscoverySessionPage() {
         messages={messages}
         onRefresh={handleRefreshSession}
         onClarificationSubmit={handleClarificationSubmit}
+        onContinueQuestions={() => {
+          setIsCompleted(false);
+          setOnboardingStep('chat');
+        }}
       />
     );
   }

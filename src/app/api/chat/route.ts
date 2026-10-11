@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 404 });
     }
 
-    if (session.status === 'completed') {
+    if (session.status === 'completed' && session.current_question_index >= CORE_QUESTIONS.length) {
       return NextResponse.json({ error: 'Session is already completed' }, { status: 400 });
     }
 
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     // 7. Update Session State & Chapter
     const nextIndex = aiResponse.nextQuestionIndex;
     const nextQ = CORE_QUESTIONS[nextIndex];
-    const newChapter = nextQ ? nextQ.chapter : 3;
+    const newChapter = nextQ ? nextQ.chapter : 4;
     const isFinished = nextIndex >= CORE_QUESTIONS.length || !!aiResponse.isFinished;
 
     await supabase

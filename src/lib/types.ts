@@ -15,7 +15,7 @@ export interface Session {
   email: string | null;
   status: SessionStatus;
   current_question_index: number;
-  current_chapter: 1 | 2 | 3;
+  current_chapter: 1 | 2 | 3 | 4;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -49,13 +49,19 @@ export interface AppBrief {
   vision_summary: string;
   problem_statement: string;
   target_users: string;
+  user_roles?: string;
   moment_of_use?: string;
   first_screen_experience?: string;
   core_action: string;
   expected_outcome?: string;
   target_platform?: string;
+  auth_requirements?: string;
   payments_integrations?: string;
+  notifications_channels?: string;
+  hardware_capabilities?: string;
+  data_readiness?: string;
   target_timeline?: string;
+  budget_range?: string;
   emotional_ux_feel: string[];
   visual_direction: string;
   anti_patterns: string[];
@@ -64,6 +70,9 @@ export interface AppBrief {
   v1_essential_features: string[];
   future_horizon?: string;
   infrastructure_preference: string;
+  concept_image_url?: string | null;
+  concept_image_feedback?: 'liked' | 'disliked' | null;
+  concept_image_notes?: string | null;
   additional_notes?: string;
   raw_transcript_url?: string;
   raw_json?: any;
@@ -72,7 +81,7 @@ export interface AppBrief {
 
 export interface QuestionDefinition {
   id: string;
-  chapter: 1 | 2 | 3;
+  chapter: 1 | 2 | 3 | 4;
   chapterTitle: string;
   number: number;
   title: string;

@@ -4,6 +4,7 @@ export const CHAPTERS = [
   { id: 1, title: 'Concept & Reality', subtitle: 'The idea, problem & core user flow' },
   { id: 2, title: 'Experience & Specs', subtitle: 'Target platforms, payments & aesthetic vibe' },
   { id: 3, title: 'Launch Blueprint', subtitle: 'V1 essentials, timeline & infrastructure' },
+  { id: 4, title: 'Architecture & Investment', subtitle: 'User roles, security, devices, data & budget' },
 ] as const;
 
 export const CORE_QUESTIONS: QuestionDefinition[] = [
@@ -143,6 +144,98 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
       'I prefer my own developer accounts (Apple, Google, AWS/Supabase)',
       'Hybrid: ENGG builds it, then guides our team on handover',
       "I'm not sure yet — recommend the best path for our stage"
+    ]
+  },
+
+  // Chapter 4: Architecture & Investment
+  {
+    id: 'user_roles_and_access',
+    chapter: 4,
+    chapterTitle: 'Architecture & Investment',
+    number: 10,
+    title: 'Who are all the different types of people using this app, and what should each be able to do?',
+    guidance: 'Beyond regular customers or users, will you need an Admin dashboard, staff/manager access, a vendor portal, or a delivery rider view? What should each role see and manage?',
+    chips: [
+      'Customers + Admin dashboard for business owner',
+      'Multi-role: Customers, Staff, Managers & Super Admin',
+      'Three-sided: Customers, Service Providers / Vendors & Admin',
+      'Single user type only (everyone has the same view)',
+      'Tiered members (Free vs Premium / VIP access)'
+    ]
+  },
+  {
+    id: 'authentication_and_access',
+    chapter: 4,
+    chapterTitle: 'Architecture & Investment',
+    number: 11,
+    title: 'How should users sign up or log in, and do accounts need manual approval?',
+    guidance: 'Think about sign-in convenience vs security. Do users need phone OTP (SMS), email & password, Google/Apple login, or can they browse as guests first?',
+    chips: [
+      'Phone number with SMS OTP verification',
+      'Social login: Google & Apple Sign-In',
+      'Email & password with magic link',
+      'Guest mode allowed (only log in to checkout/book)',
+      'Admin approval required before accounts can be used'
+    ]
+  },
+  {
+    id: 'notifications_and_alerts',
+    chapter: 4,
+    chapterTitle: 'Architecture & Investment',
+    number: 12,
+    title: "How should the app communicate and notify users when they're not on the screen?",
+    guidance: 'How do you want to keep users informed? Push notifications on their phone, SMS alerts, transactional emails, or chat app updates?',
+    chips: [
+      'Push notifications on mobile (order updates, reminders)',
+      'Automated SMS text alerts for critical updates',
+      'Branded email receipts & summary notifications',
+      'In-app notification center / activity feed',
+      'No notifications needed for V1'
+    ]
+  },
+  {
+    id: 'device_and_hardware',
+    chapter: 4,
+    chapterTitle: 'Architecture & Investment',
+    number: 13,
+    title: 'Does the app need to connect with device hardware or special device capabilities?',
+    guidance: 'Consider features like camera/QR barcode scanning, GPS live tracking, Bluetooth thermal printers for receipts, or working offline without internet.',
+    chips: [
+      'Camera scanning for QR codes / receipts / barcodes',
+      'GPS live location & distance tracking',
+      'Bluetooth thermal printer for order slips / receipts',
+      'Offline mode (store data locally when internet drops)',
+      'Standard device features only (no special hardware)'
+    ]
+  },
+  {
+    id: 'data_and_assets',
+    chapter: 4,
+    chapterTitle: 'Architecture & Investment',
+    number: 14,
+    title: 'Do you have existing data to migrate and brand assets ready, or will we build them from scratch?',
+    guidance: 'Do you already have product catalogs, spreadsheets, customer databases, logos, and color palettes ready to import, or will we help set those up?',
+    chips: [
+      'Spreadsheets ready to import (products, menus, prices)',
+      'Logo, brand colors & guidelines ready',
+      'Existing database / system to migrate data from',
+      'Starting fresh — no existing data to migrate',
+      'Need Every Nation GG to help create brand identity'
+    ]
+  },
+  {
+    id: 'budget_and_investment',
+    chapter: 4,
+    chapterTitle: 'Architecture & Investment',
+    number: 15,
+    title: 'What budget or investment range have you allocated for the design, development, and launch of Version 1?',
+    guidance: 'This helps Every Nation GG tailor the exact technology stack, architecture, and feature depth to maximize your ROI within your target investment.',
+    chips: [
+      'Lean MVP / Starter (₱50k – ₱120k / $1k – $2.5k)',
+      'Growth / Full-featured V1 (₱150k – ₱350k / $3k – $7k)',
+      'Scale / Comprehensive platform (₱400k – ₱800k+ / $8k – $15k+)',
+      'Enterprise / Custom quote based on full scope',
+      'Flexible — recommend the best balance for our goals'
     ]
   }
 ];

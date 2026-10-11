@@ -1,13 +1,11 @@
-'use client';
-
 import React, { useState } from 'react';
 import { AppBrief } from '@/lib/types';
-import { CheckCircle2, Edit3, ArrowRight, Sparkles, Send } from 'lucide-react';
+import { CheckCircle2, Edit3, ArrowRight, Sparkles, Send, ThumbsUp, ThumbsDown, Image as ImageIcon } from 'lucide-react';
 
 interface ReviewDeckProps {
   clientName: string;
   brief: Partial<AppBrief>;
-  onConfirm: (notes?: string) => Promise<void>;
+  onConfirm: (notes?: string, conceptFeedback?: 'liked' | 'disliked', conceptNotes?: string) => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -19,9 +17,16 @@ export const ReviewDeck: React.FC<ReviewDeckProps> = ({
 }) => {
   const [correctionNote, setCorrectionNote] = useState('');
   const [showCorrectionInput, setShowCorrectionInput] = useState(false);
+  const [conceptFeedback, setConceptFeedback] = useState<'liked' | 'disliked' | null>(
+    (brief.concept_image_feedback as any) || null
+  );
+  const [conceptNote, setConceptNote] = useState(brief.concept_image_notes || '');
+  const [showConceptNoteInput, setShowConceptNoteInput] = useState(
+    brief.concept_image_feedback === 'disliked'
+  );
 
   const handleSubmit = async () => {
-    await onConfirm(correctionNote);
+    await onConfirm(correctionNote, conceptFeedback || undefined, conceptNote || undefined);
   };
 
   return (
@@ -98,6 +103,95 @@ export const ReviewDeck: React.FC<ReviewDeckProps> = ({
             <strong>Infrastructure:</strong> {brief.infrastructure_preference || 'ENGG Managed'}
           </p>
         </div>
+
+        {/* Card 5: Architecture & Investment */}
+        <div className="visien-card review-card">
+          <h3 className="card-section-title">Architecture, Devices & Investment</h3>
+          {(brief.user_roles || brief.raw_json?.user_roles) && (
+            <p className="card-text"><strong>User Roles & Access:</strong> {brief.user_roles || brief.raw_json?.user_roles}</p>
+          )}
+          {(brief.auth_requirements || brief.raw_json?.auth_requirements) && (
+            <p className="card-text"><strong>Authentication / Login:</strong> {brief.auth_requirements || brief.raw_json?.auth_requirements}</p>
+          )}
+          {(brief.notifications_channels || brief.raw_json?.notifications_channels) && (
+            <p className="card-text"><strong>Notifications & Alerts:</strong> {brief.notifications_channels || brief.raw_json?.notifications_channels}</p>
+          )}
+          {(brief.hardware_capabilities || brief.raw_json?.hardware_capabilities) && (
+            <p className="card-text"><strong>Hardware & Device Specs:</strong> {brief.hardware_capabilities || brief.raw_json?.hardware_capabilities}</p>
+          )}
+          {(brief.data_readiness || brief.raw_json?.data_readiness) && (
+            <p className="card-text"><strong>Data & Brand Readiness:</strong> {brief.data_readiness || brief.raw_json?.data_readiness}</p>
+          )}
+          {(brief.budget_range || brief.raw_json?.budget_range) && (
+            <p className="card-text" style={{ marginTop: '6px', color: 'var(--violet-primary)', fontWeight: 600 }}>
+              <strong>Target Budget / Investment:</strong> {brief.budget_range || brief.raw_json?.budget_range}
+            </p>
+          )}
+        </div>
+
+        {/* Card 6: AI Visual Concept Moodboard */}
+        {brief.concept_image_url && (
+          <div className="visien-card review-card concept-card">
+            <div className="concept-header">
+              <span className="concept-badge">
+                <Sparkles size={13} />
+                <span>AI Visual Concept & Moodboard</span>
+              </span>
+              <h3 className="card-section-title" style={{ marginTop: '8px' }}>First Screen Vibe Check</h3>
+              <p className="concept-subtext">
+                Generated from your aesthetic direction and core flow. Every Nation GG designers will use this as an aesthetic baseline for your custom Figma layouts.
+              </p>
+            </div>
+
+            <div className="concept-image-wrapper">
+              <img
+                src={brief.concept_image_url}
+                alt="App UI Concept"
+                className="concept-image"
+              />
+            </div>
+
+            <div className="concept-feedback-section">
+              <p className="feedback-prompt">Does this concept match the visual vibe you had in mind?</p>
+              <div className="feedback-btn-group">
+                <button
+                  type="button"
+                  className={`concept-feedback-btn ${conceptFeedback === 'liked' ? 'selected-like' : ''}`}
+                  onClick={() => {
+                    setConceptFeedback('liked');
+                    setShowConceptNoteInput(false);
+                  }}
+                >
+                  <ThumbsUp size={15} />
+                  <span>Yes, matches my vibe</span>
+                </button>
+                <button
+                  type="button"
+                  className={`concept-feedback-btn ${conceptFeedback === 'disliked' ? 'selected-dislike' : ''}`}
+                  onClick={() => {
+                    setConceptFeedback('disliked');
+                    setShowConceptNoteInput(true);
+                  }}
+                >
+                  <ThumbsDown size={15} />
+                  <span>Not quite what I imagined</span>
+                </button>
+              </div>
+
+              {showConceptNoteInput && (
+                <div className="concept-note-box">
+                  <input
+                    type="text"
+                    className="concept-note-field"
+                    placeholder="What should our design team adjust? (e.g. darker background, simpler layout)"
+                    value={conceptNote}
+                    onChange={(e) => setConceptNote(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Clarification / Correction Prompt */}
@@ -257,6 +351,125 @@ export const ReviewDeck: React.FC<ReviewDeckProps> = ({
         }
 
         .correction-textarea:focus {
+          border-color: var(--violet-primary);
+        }
+
+        .concept-card {
+          border: 1.5px solid rgba(139, 92, 246, 0.25);
+          background: linear-gradient(180deg, #FFFFFF 0%, rgba(245, 243, 255, 0.4) 100%);
+        }
+
+        .concept-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          background: var(--violet-soft);
+          color: var(--violet-deep);
+          font-size: 11.5px;
+          font-weight: 700;
+          border-radius: var(--radius-full);
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .concept-subtext {
+          font-size: 13px;
+          color: var(--text-secondary);
+          line-height: 1.5;
+          margin-bottom: 14px;
+        }
+
+        .concept-image-wrapper {
+          width: 100%;
+          max-width: 380px;
+          margin: 0 auto 16px;
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+          background: #000;
+        }
+
+        .concept-image {
+          width: 100%;
+          height: auto;
+          display: block;
+          transition: transform 0.3s ease;
+        }
+
+        .concept-feedback-section {
+          padding-top: 14px;
+          border-top: 1px solid var(--border-subtle);
+          text-align: center;
+        }
+
+        .feedback-prompt {
+          font-size: 13.5px;
+          font-weight: 600;
+          color: var(--text-main);
+          margin-bottom: 10px;
+        }
+
+        .feedback-btn-group {
+          display: flex;
+          gap: 10px;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
+        .concept-feedback-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 16px;
+          border-radius: var(--radius-full);
+          border: 1px solid var(--border-subtle);
+          background: #FFFFFF;
+          color: var(--text-secondary);
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .concept-feedback-btn:hover {
+          border-color: var(--violet-primary);
+          color: var(--violet-deep);
+        }
+
+        .concept-feedback-btn.selected-like {
+          background: #DCFCE7;
+          border-color: #16A34A;
+          color: #166534;
+          box-shadow: 0 2px 8px rgba(22, 163, 74, 0.15);
+        }
+
+        .concept-feedback-btn.selected-dislike {
+          background: #FEE2E2;
+          border-color: #DC2626;
+          color: #991B1B;
+          box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
+        }
+
+        .concept-note-box {
+          margin-top: 12px;
+          max-width: 440px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .concept-note-field {
+          width: 100%;
+          padding: 10px 14px;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-subtle);
+          font-size: 13px;
+          outline: none;
+          background: #FFFFFF;
+          color: var(--text-main);
+        }
+
+        .concept-note-field:focus {
           border-color: var(--violet-primary);
         }
 

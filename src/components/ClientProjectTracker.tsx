@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Session, AppBrief, Message, ProjectProgressStatus } from '@/lib/types';
 import { EnosOrb } from '@/components/EnosOrb';
+import { CORE_QUESTIONS } from '@/lib/questions';
 import {
   CheckCircle2,
   Clock,
@@ -29,6 +30,7 @@ interface ClientProjectTrackerProps {
   messages: Message[];
   onRefresh: () => Promise<void>;
   onClarificationSubmit: (replyText: string) => Promise<boolean>;
+  onContinueQuestions?: () => void;
 }
 
 export function ClientProjectTracker({
@@ -37,6 +39,7 @@ export function ClientProjectTracker({
   messages,
   onRefresh,
   onClarificationSubmit,
+  onContinueQuestions,
 }: ClientProjectTrackerProps) {
   const [activeTab, setActiveTab] = useState<'brief' | 'transcript'>('brief');
   const [copiedCode, setCopiedCode] = useState(false);
@@ -275,6 +278,34 @@ export function ClientProjectTracker({
           </div>
         </div>
 
+        {/* Action Needed Banner: Remaining questions */}
+        {(session.current_question_index ?? 0) < CORE_QUESTIONS.length && (
+          <div className="visien-card pending-action-card">
+            <div className="pending-action-left">
+              <div className="pending-icon-wrap">
+                <Sparkles size={22} color="var(--violet-primary)" />
+              </div>
+              <div>
+                <span className="pending-tag">Action Required</span>
+                <h3 className="pending-action-title">Additional Technical Questions Needed</h3>
+                <p className="pending-action-desc">
+                  We have added {CORE_QUESTIONS.length - (session.current_question_index ?? 0)} essential questions covering user roles, authentication, notifications, hardware, and budget to finalize your build blueprint.
+                </p>
+              </div>
+            </div>
+            {onContinueQuestions && (
+              <button
+                type="button"
+                className="visien-btn-primary continue-questions-btn"
+                onClick={onContinueQuestions}
+              >
+                <span>Answer Questions Now</span>
+                <ChevronRight size={16} />
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Current Status Highlights Box */}
         <div className="visien-card status-hero-card">
           <div className="hero-text-content">
@@ -468,6 +499,78 @@ export function ClientProjectTracker({
                       <p>{brief.target_platform}</p>
                     </div>
                   )}
+                  {(brief.user_roles || brief.raw_json?.user_roles) && (
+                    <div className="brief-field">
+                      <label>User Roles & Access</label>
+                      <p>{brief.user_roles || brief.raw_json?.user_roles}</p>
+                    </div>
+                  )}
+                  {(brief.auth_requirements || brief.raw_json?.auth_requirements) && (
+                    <div className="brief-field">
+                      <label>Authentication & Sign-Up</label>
+                      <p>{brief.auth_requirements || brief.raw_json?.auth_requirements}</p>
+                    </div>
+                  )}
+                  {(brief.notifications_channels || brief.raw_json?.notifications_channels) && (
+                    <div className="brief-field">
+                      <label>Notifications & Alerts</label>
+                      <p>{brief.notifications_channels || brief.raw_json?.notifications_channels}</p>
+                    </div>
+                  )}
+                  {(brief.hardware_capabilities || brief.raw_json?.hardware_capabilities) && (
+                    <div className="brief-field">
+                      <label>Hardware & Device Capabilities</label>
+                      <p>{brief.hardware_capabilities || brief.raw_json?.hardware_capabilities}</p>
+                    </div>
+                  )}
+                  {(brief.data_readiness || brief.raw_json?.data_readiness) && (
+                    <div className="brief-field">
+                      <label>Data & Asset Readiness</label>
+                      <p>{brief.data_readiness || brief.raw_json?.data_readiness}</p>
+                    </div>
+                  )}
+                  {(brief.budget_range || brief.raw_json?.budget_range) && (
+                    <div className="brief-field">
+                      <label>Target Budget / Investment</label>
+                      <p style={{ color: 'var(--violet-primary)', fontWeight: 600 }}>
+                        {brief.budget_range || brief.raw_json?.budget_range}
+                      </p>
+                    </div>
+                  )}
+                  {brief.concept_image_url && (
+                    <div className="brief-field full-span tracker-concept-field">
+                      <label>AI Visual Concept & Moodboard</label>
+                      <div className="tracker-concept-card">
+                        <div className="tracker-concept-img-frame">
+                          <img
+                            src={brief.concept_image_url}
+                            alt="AI UI Concept Mockup"
+                            className="tracker-concept-img"
+                          />
+                        </div>
+                        <div className="tracker-concept-details">
+                          <div className="tracker-concept-status">
+                            {brief.concept_image_feedback === 'liked' ? (
+                              <span className="concept-verdict-tag verdict-liked">
+                                👍 Client Approved Vibe
+                              </span>
+                            ) : brief.concept_image_feedback === 'disliked' ? (
+                              <span className="concept-verdict-tag verdict-disliked">
+                                💬 Refinements Noted: {brief.concept_image_notes || 'Tweak requested'}
+                              </span>
+                            ) : (
+                              <span className="concept-verdict-tag verdict-neutral">
+                                🎨 Aesthetic Baseline
+                              </span>
+                            )}
+                          </div>
+                          <p className="tracker-concept-note">
+                            Every Nation GG UI/UX architects use this concept as an aesthetic baseline when crafting your custom Figma interface designs.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="empty-tab-state">
@@ -646,6 +749,70 @@ export function ClientProjectTracker({
           align-items: center;
           justify-content: space-between;
           background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(245, 243, 255, 0.85));
+        }
+
+        .pending-action-card {
+          padding: 20px 24px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          border: 1.5px solid rgba(139, 92, 246, 0.4);
+          background: linear-gradient(135deg, rgba(245, 243, 255, 0.95), rgba(254, 243, 199, 0.7));
+          box-shadow: 0 4px 16px rgba(139, 92, 246, 0.12);
+        }
+
+        @media (max-width: 640px) {
+          .pending-action-card {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+        }
+
+        .pending-action-left {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+        }
+
+        .pending-icon-wrap {
+          padding: 10px;
+          border-radius: var(--radius-md);
+          background: #FFF;
+          box-shadow: var(--shadow-sm);
+        }
+
+        .pending-tag {
+          display: inline-block;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--violet-primary);
+          margin-bottom: 4px;
+        }
+
+        .pending-action-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--text-main);
+          margin: 0 0 4px;
+        }
+
+        .pending-action-desc {
+          font-size: 13.5px;
+          color: var(--text-secondary);
+          margin: 0;
+          line-height: 1.5;
+          max-width: 520px;
+        }
+
+        .continue-questions-btn {
+          white-space: nowrap;
+          padding: 12px 20px;
+          gap: 8px;
+          font-size: 14px;
+          font-weight: 600;
         }
 
         .project-header-left {
@@ -1068,6 +1235,78 @@ export function ClientProjectTracker({
 
         .brief-field.full-span {
           grid-column: span 2;
+        }
+
+        .tracker-concept-card {
+          margin-top: 8px;
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          padding: 16px;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(245, 243, 255, 0.7));
+          border: 1px solid rgba(139, 92, 246, 0.2);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-sm);
+        }
+
+        @media (max-width: 640px) {
+          .tracker-concept-card {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+        }
+
+        .tracker-concept-img-frame {
+          width: 140px;
+          min-width: 140px;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+          background: #000;
+        }
+
+        .tracker-concept-img {
+          width: 100%;
+          height: auto;
+          display: block;
+        }
+
+        .tracker-concept-details {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .concept-verdict-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 12px;
+          border-radius: var(--radius-full);
+          font-size: 12px;
+          font-weight: 700;
+          width: fit-content;
+        }
+
+        .verdict-liked {
+          background: #DCFCE7;
+          color: #166534;
+        }
+
+        .verdict-disliked {
+          background: #FEE2E2;
+          color: #991B1B;
+        }
+
+        .verdict-neutral {
+          background: var(--violet-soft);
+          color: var(--violet-deep);
+        }
+
+        .tracker-concept-note {
+          font-size: 13px !important;
+          color: var(--text-secondary) !important;
+          line-height: 1.5;
         }
 
         .brief-field label {

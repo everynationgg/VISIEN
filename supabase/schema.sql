@@ -15,7 +15,7 @@ create table if not exists public.sessions (
   email text,
   status text not null default 'not_started' check (status in ('not_started', 'in_progress', 'completed', 'expired')),
   current_question_index int not null default 0,
-  current_chapter int not null default 1 check (current_chapter in (1, 2, 3)),
+  current_chapter int not null default 1 check (current_chapter in (1, 2, 3, 4)),
   consent_given boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -62,6 +62,7 @@ create table if not exists public.app_briefs (
   vision_summary text not null,
   problem_statement text not null,
   target_users text not null,
+  user_roles text,
   moment_of_use text not null,
   first_screen_experience text not null,
   core_action text not null,
@@ -74,8 +75,16 @@ create table if not exists public.app_briefs (
   v1_essential_features text[] default '{}',
   future_horizon text not null default '',
   target_platform text,
+  auth_requirements text,
   payments_integrations text,
+  notifications_channels text,
+  hardware_capabilities text,
+  data_readiness text,
   target_timeline text,
+  budget_range text,
+  concept_image_url text,
+  concept_image_feedback text,
+  concept_image_notes text,
   infrastructure_preference text not null,
   additional_notes text,
   raw_json jsonb,
@@ -83,9 +92,12 @@ create table if not exists public.app_briefs (
 );
 
 -- Migration helpers if table already exists:
--- alter table public.app_briefs add column if not exists target_platform text;
--- alter table public.app_briefs add column if not exists payments_integrations text;
--- alter table public.app_briefs add column if not exists target_timeline text;
+-- alter table public.app_briefs add column if not exists user_roles text;
+-- alter table public.app_briefs add column if not exists auth_requirements text;
+-- alter table public.app_briefs add column if not exists notifications_channels text;
+-- alter table public.app_briefs add column if not exists hardware_capabilities text;
+-- alter table public.app_briefs add column if not exists data_readiness text;
+-- alter table public.app_briefs add column if not exists budget_range text;
 
 create index if not exists idx_app_briefs_session_id on public.app_briefs(session_id);
 
