@@ -12,9 +12,8 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 // High-availability Gemini model tier with automatic failover
 export const GEMINI_CHAT_MODELS = [
-  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash',
   'gemini-3-flash-preview',
-  'gemini-3.1-flash-lite-preview',
 ];
 
 /**
