@@ -59,7 +59,24 @@ export async function POST(request: NextRequest) {
 
     let conceptImageUrl = existingBrief?.concept_image_url || null;
     if (!conceptImageUrl) {
-      conceptImageUrl = await generateAppConceptImage(session.id, briefData, supabase);
+      // Race against a 3.5s timeout so client gets their App Vision in ~3s instead of hanging on external image APIs
+      const imagePromise = generateAppConceptImage(session.id, briefData, supabase);
+      conceptImageUrl = await Promise.race([
+        imagePromise,
+        new Promise<string | null>((resolve) => setTimeout(() => resolve(null), 3500)),
+      ]);
+
+      // If it takes longer than 3.5s, let it finish and update in the background without blocking the client
+      if (!conceptImageUrl) {
+        imagePromise.then(async (bgUrl) => {
+          if (bgUrl) {
+            await supabase
+              .from('app_briefs')
+              .update({ concept_image_url: bgUrl })
+              .eq('session_id', session.id);
+          }
+        }).catch(() => {});
+      }
     }
 
     // 4. Upsert into app_briefs table
