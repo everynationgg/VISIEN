@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { generateEnosResponse } from '@/lib/gemini';
 import { CORE_QUESTIONS } from '@/lib/questions';
+import { findSessionByTokenOrQuery } from '@/lib/sessionResolver';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,32 +15,7 @@ export async function POST(request: NextRequest) {
     const supabase = getAdminSupabase();
 
     // 1. Fetch active session
-    const cleanToken = token.trim();
-    let { data: session } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('token', cleanToken)
-      .maybeSingle();
-
-    if (!session && cleanToken.length === 6 && !cleanToken.includes('-')) {
-      const withDash = `${cleanToken.slice(0, 3)}-${cleanToken.slice(3)}`;
-      const { data: dashMatch } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('token', withDash)
-        .maybeSingle();
-      session = dashMatch;
-    }
-
-    if (!session && cleanToken.includes('-')) {
-      const noDash = cleanToken.replace(/-/g, '');
-      const { data: noDashMatch } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('token', noDash)
-        .maybeSingle();
-      session = noDashMatch;
-    }
+    const session = await findSessionByTokenOrQuery(supabase, token);
 
     if (!session) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 404 });

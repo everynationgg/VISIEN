@@ -114,8 +114,13 @@ export default function DiscoverySessionPage() {
         }
         const data = await res.json();
         setSession(data.session);
-        setMessages(data.messages || []);
 
+        // Update URL quietly to canonical token if accessed via alias or client name
+        if (typeof window !== 'undefined' && data.session.token && window.location.pathname !== `/i/${data.session.token}`) {
+          window.history.replaceState(null, '', `/i/${data.session.token}`);
+        }
+
+        const loadedMessages = data.messages || [];
         const hasUnansweredQuestions = (data.session.current_question_index ?? 0) < CORE_QUESTIONS.length;
 
         if (data.session.status === 'completed' && !hasUnansweredQuestions) {
@@ -136,6 +141,23 @@ export default function DiscoverySessionPage() {
         } else {
           setOnboardingStep('name');
         }
+
+        // Guarantee initial greeting if in active chat and no messages recorded yet
+        if (loadedMessages.length === 0 && data.session.consent_given) {
+          const firstQ = CORE_QUESTIONS[data.session.current_question_index || 0];
+          const greeting = `Hi ${(data.session.client_name || '').trim() || 'there'}! I'm ENOS, your AI guide here in VISIEN.\n\nI'll ask you about the app idea you have in mind — no technical knowledge needed, just share your thoughts naturally.\n\nLet's start here: ${firstQ.title}\n\n${firstQ.guidance}`;
+          const initMsg: Message = {
+            id: 'init-1',
+            session_id: data.session.id,
+            role: 'enos',
+            content: greeting,
+            created_at: new Date().toISOString(),
+          };
+          setMessages([initMsg]);
+          setNewestEnosId('init-1');
+        } else {
+          setMessages(loadedMessages);
+        }
       } catch (err) {
         console.error('Session load error:', err);
       } finally {
@@ -151,7 +173,8 @@ export default function DiscoverySessionPage() {
 
     const checkSessionLiveness = async () => {
       try {
-        const res = await fetch(`/api/session/${token}`, { method: 'GET' });
+        const lookupToken = session?.token || token;
+        const res = await fetch(`/api/session/${lookupToken}`, { method: 'GET' });
         if (res.status === 404) {
           setIsSessionNotFound(true);
         }
@@ -346,7 +369,8 @@ export default function DiscoverySessionPage() {
     if (!nameInput.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/session/${token}`, {
+      const targetToken = session?.token || token;
+      const res = await fetch(`/api/session/${targetToken}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_name: nameInput.trim() }),
@@ -370,7 +394,8 @@ export default function DiscoverySessionPage() {
     if (!agree) { setHasExited(true); return; }
     setLoading(true);
     try {
-      const res = await fetch(`/api/session/${token}`, {
+      const targetToken = session?.token || token;
+      const res = await fetch(`/api/session/${targetToken}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ consent_given: true, status: 'in_progress' }),
@@ -424,7 +449,7 @@ export default function DiscoverySessionPage() {
       const res = await fetch('/api/brief', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token: session?.token || token }),
       });
       if (res.status === 404) {
         setIsSessionNotFound(true);
@@ -492,7 +517,7 @@ export default function DiscoverySessionPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          token,
+          token: session.token || token,
           message: userMessageContent,
           questionId: currentQ?.id,
         }),
@@ -572,6 +597,47 @@ export default function DiscoverySessionPage() {
     }
   };
 
+  // Refresh Session for Client Tracker
+  const handleRefreshSession = useCallback(async () => {
+    const lookupToken = session?.token || token;
+    if (!lookupToken) return;
+    try {
+      const res = await fetch(`/api/session/${lookupToken}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSession(data.session);
+        if (data.brief) setGeneratedBrief(data.brief);
+        if (data.messages) setMessages(data.messages);
+      }
+    } catch (e) {
+      console.error('Refresh session error:', e);
+    }
+  }, [session?.token, token]);
+
+  // Submit Clarification reply for Client Tracker
+  const handleClarificationSubmit = useCallback(async (replyText: string): Promise<boolean> => {
+    const lookupToken = session?.token || token;
+    if (!lookupToken || !replyText.trim()) return false;
+    try {
+      const res = await fetch(`/api/session/${lookupToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_clarification_reply: replyText.trim(),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSession(data.session);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Clarification submit error:', err);
+      return false;
+    }
+  }, [session?.token, token]);
+
   // Loading screen
   if (loading) {
     return (
@@ -589,16 +655,48 @@ export default function DiscoverySessionPage() {
     return (
       <div className="discovery-fullscreen session-ended-screen">
         <EnosOrb state="idle" size={90} />
-        <h2 className="ended-title">Session Closed</h2>
+        <h2 className="ended-title">Session Not Found</h2>
         <p className="ended-desc">
-          This discovery session is no longer available or has been ended by an administrator.
+          We couldn&apos;t find an active discovery session for &ldquo;<strong>{token}</strong>&rdquo;.
         </p>
         <p className="ended-subtext">
-          If you are looking to start a new app discovery with Every Nation GG, please visit our homepage.
+          Please check your 6-digit session code (e.g. <strong>929-909</strong>) or re-enter your invitation code below:
         </p>
-        <a href="/" className="visien-btn-primary return-home-btn">
-          <span>Return to Homepage</span>
-        </a>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const input = (e.currentTarget.elements.namedItem('recode') as HTMLInputElement)?.value?.trim();
+            if (input) {
+              const clean = input.replace(/^.*\/i\//, '');
+              window.location.href = `/i/${clean}`;
+            }
+          }}
+          className="retry-form"
+        >
+          <input
+            name="recode"
+            type="text"
+            className="retry-input"
+            placeholder="e.g. 929-909"
+            autoFocus
+          />
+          <button type="submit" className="visien-btn-primary retry-btn">
+            <span>Enter</span>
+            <ArrowRight size={15} />
+          </button>
+        </form>
+
+        <div className="ended-actions">
+          <a href="/" className="return-home-link">
+            ← Return to Homepage
+          </a>
+          <span className="dot-divider">•</span>
+          <a href="/admin" className="return-home-link">
+            Admin Portal →
+          </a>
+        </div>
+
         <style jsx>{`
           .discovery-fullscreen {
             display: flex;
@@ -625,20 +723,56 @@ export default function DiscoverySessionPage() {
             color: var(--text-secondary);
             max-width: 420px;
             line-height: 1.5;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
           }
           .ended-subtext {
             font-size: 13.5px;
             color: var(--text-muted);
             max-width: 380px;
             line-height: 1.6;
+            margin-bottom: 12px;
+          }
+          .retry-form {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            max-width: 320px;
             margin-bottom: 16px;
           }
-          .return-home-btn {
-            display: inline-flex;
+          .retry-input {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+            font-size: 15px;
+            outline: none;
+            background: #ffffff;
+            color: var(--text-main);
+            text-align: center;
+          }
+          .retry-input:focus {
+            border-color: var(--violet-primary);
+          }
+          .retry-btn {
+            padding: 10px 18px;
+            font-size: 14px;
+          }
+          .ended-actions {
+            display: flex;
             align-items: center;
-            padding: 12px 24px;
+            gap: 12px;
+            font-size: 13px;
+          }
+          .return-home-link {
+            color: var(--violet-primary);
             text-decoration: none;
+            font-weight: 600;
+          }
+          .return-home-link:hover {
+            text-decoration: underline;
+          }
+          .dot-divider {
+            color: var(--border-subtle);
           }
         `}</style>
       </div>
@@ -662,45 +796,6 @@ export default function DiscoverySessionPage() {
       </div>
     );
   }
-
-  // Refresh Session for Client Tracker
-  const handleRefreshSession = useCallback(async () => {
-    if (!token) return;
-    try {
-      const res = await fetch(`/api/session/${token}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSession(data.session);
-        if (data.brief) setGeneratedBrief(data.brief);
-        if (data.messages) setMessages(data.messages);
-      }
-    } catch (e) {
-      console.error('Refresh session error:', e);
-    }
-  }, [token]);
-
-  // Submit Clarification reply for Client Tracker
-  const handleClarificationSubmit = useCallback(async (replyText: string): Promise<boolean> => {
-    if (!token || !replyText.trim()) return false;
-    try {
-      const res = await fetch(`/api/session/${token}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          client_clarification_reply: replyText.trim(),
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSession(data.session);
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error('Clarification submit error:', err);
-      return false;
-    }
-  }, [token]);
 
   // Completed screen (Client Live Project Tracker)
   if (isCompleted && session) {

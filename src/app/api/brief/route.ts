@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { generateAppBriefFromTranscript, generateAppConceptImage } from '@/lib/gemini';
+import { findSessionByTokenOrQuery } from '@/lib/sessionResolver';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,32 +14,7 @@ export async function POST(request: NextRequest) {
     const supabase = getAdminSupabase();
 
     // 1. Fetch Session
-    const cleanToken = token.trim();
-    let { data: session } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('token', cleanToken)
-      .maybeSingle();
-
-    if (!session && cleanToken.length === 6 && !cleanToken.includes('-')) {
-      const withDash = `${cleanToken.slice(0, 3)}-${cleanToken.slice(3)}`;
-      const { data: dashMatch } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('token', withDash)
-        .maybeSingle();
-      session = dashMatch;
-    }
-
-    if (!session && cleanToken.includes('-')) {
-      const noDash = cleanToken.replace(/-/g, '');
-      const { data: noDashMatch } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('token', noDash)
-        .maybeSingle();
-      session = noDashMatch;
-    }
+    const session = await findSessionByTokenOrQuery(supabase, token);
 
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });

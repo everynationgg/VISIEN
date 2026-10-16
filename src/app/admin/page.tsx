@@ -726,9 +726,19 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div className="share-actions-group">
+                  <a
+                    href={`/i/${createdToken}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="visien-btn-primary enter-session-btn"
+                  >
+                    <ExternalLink size={16} />
+                    <span>Enter Session Now ({createdToken})</span>
+                  </a>
+
                   <button
                     type="button"
-                    className="visien-btn-primary copy-large-btn"
+                    className="visien-btn-secondary"
                     onClick={() => {
                       navigator.clipboard.writeText(createdToken || '');
                       setCopiedCode(true);
@@ -1632,6 +1642,16 @@ export default function AdminDashboardPage() {
           flex-direction: column;
           gap: 9px;
           width: 100%;
+        }
+
+        .enter-session-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          text-decoration: none;
+          padding: 12px 18px;
+          font-weight: 700;
         }
 
         .code-pill {

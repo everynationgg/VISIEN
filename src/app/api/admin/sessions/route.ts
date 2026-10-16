@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
+import { findSessionByTokenOrQuery } from '@/lib/sessionResolver';
 import crypto from 'crypto';
 
 // Generates a memorable, clean 6-digit session code (e.g. 748-219)
@@ -128,32 +129,8 @@ export async function DELETE(request: NextRequest) {
     // 2. Single deletion branch
     let targetId = id;
     if (!targetId && token) {
-      const cleanToken = token.trim();
-      const { data: found } = await supabase
-        .from('sessions')
-        .select('id')
-        .eq('token', cleanToken)
-        .maybeSingle();
-
-      if (!found && cleanToken.length === 6 && !cleanToken.includes('-')) {
-        const withDash = `${cleanToken.slice(0, 3)}-${cleanToken.slice(3)}`;
-        const { data: dashMatch } = await supabase
-          .from('sessions')
-          .select('id')
-          .eq('token', withDash)
-          .maybeSingle();
-        targetId = dashMatch?.id;
-      } else if (!found && cleanToken.includes('-')) {
-        const noDash = cleanToken.replace(/-/g, '');
-        const { data: noDashMatch } = await supabase
-          .from('sessions')
-          .select('id')
-          .eq('token', noDash)
-          .maybeSingle();
-        targetId = noDashMatch?.id;
-      } else {
-        targetId = found?.id;
-      }
+      const found = await findSessionByTokenOrQuery(supabase, token);
+      targetId = found?.id;
     }
 
     if (!targetId) {
