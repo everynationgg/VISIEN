@@ -3,6 +3,8 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { generateAppBriefFromTranscript, generateAppConceptImage } from '@/lib/gemini';
 import { findSessionByTokenOrQuery } from '@/lib/sessionResolver';
 
+export const maxDuration = 60; // Allow ample time for Gemini synthesis & AI moodboard generation
+
 export async function POST(request: NextRequest) {
   try {
     const { token, feedbackNotes, conceptImageFeedback, conceptImageNotes } = await request.json();

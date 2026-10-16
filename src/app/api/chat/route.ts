@@ -4,6 +4,8 @@ import { generateEnosResponse } from '@/lib/gemini';
 import { CORE_QUESTIONS } from '@/lib/questions';
 import { findSessionByTokenOrQuery } from '@/lib/sessionResolver';
 
+export const maxDuration = 30;
+
 export async function POST(request: NextRequest) {
   try {
     const { token, message, questionId } = await request.json();

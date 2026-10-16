@@ -460,23 +460,37 @@ export default function DiscoverySessionPage() {
     setIsGeneratingBrief(true);
     setOrbState('thinking');
 
-    // Add a transitional ENOS message
-    const briefingMsg: Message = {
-      id: `enos-briefing-${Date.now()}`,
-      session_id: session?.id || '',
-      role: 'enos',
-      content: customNotice || `That covers everything I needed to know. Give me a moment while I put together what I understood about your app vision...`,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, briefingMsg]);
-    setNewestEnosId(briefingMsg.id);
+    // Only add a transitional message if an explicit custom notice was requested (e.g. early exit)
+    // Otherwise, VISIEN's previous chat response already explained that compilation has started.
+    if (customNotice) {
+      const briefingMsg: Message = {
+        id: `visien-briefing-${Date.now()}`,
+        session_id: session?.id || '',
+        role: 'enos',
+        content: customNotice,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, briefingMsg]);
+      setNewestEnosId(briefingMsg.id);
+    }
 
     try {
-      const res = await fetch('/api/brief', {
+      let res = await fetch('/api/brief', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: session?.token || token }),
       });
+
+      // Quick automatic retry if network or cold-start hiccup occurred
+      if (!res.ok && res.status !== 404) {
+        await new Promise((r) => setTimeout(r, 2000));
+        res = await fetch('/api/brief', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: session?.token || token }),
+        });
+      }
+
       if (res.status === 404) {
         setIsSessionNotFound(true);
         return;
@@ -489,15 +503,15 @@ export default function DiscoverySessionPage() {
       setTimeout(() => {
         setIsReviewMode(true);
         setOrbState('idle');
-      }, 1800);
+      }, 1500);
     } catch (err: any) {
       console.error('Brief generation error:', err);
       setOrbState('idle');
       const failMsg: Message = {
-        id: `enos-fail-${Date.now()}`,
+        id: `visien-fail-${Date.now()}`,
         session_id: session?.id || '',
         role: 'enos',
-        content: `I had a brief connection delay while compiling your App Brief. Please tap 'End Chat' above or try again in a few moments.`,
+        content: `I had a brief connection delay while compiling your App Vision. Please tap 'End Chat' above or try again in a few moments.`,
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, failMsg]);
