@@ -145,7 +145,7 @@ export default function DiscoverySessionPage() {
         // Guarantee initial greeting if in active chat and no messages recorded yet
         if (loadedMessages.length === 0 && data.session.consent_given) {
           const firstQ = CORE_QUESTIONS[data.session.current_question_index || 0];
-          const greeting = `Hi ${(data.session.client_name || '').trim() || 'there'}! I'm VISIEN, your AI guide from Every Nation GG.\n\nWhether you already have a clear app in mind or just know what type of business or project this is for, I'm here to explore and shape your idea with you — no technical knowledge needed.\n\nLet's start here: ${firstQ.title}\n\n${firstQ.guidance}`;
+          const greeting = `Hi ${(data.session.client_name || '').trim() || 'there'}! I'm VISIEN, your AI guide from Every Nation GG.\n\nI'll help you shape your app idea into a ready-to-build blueprint — no technical background needed.\n\nLet's start here: ${firstQ.title}`;
           const initMsg: Message = {
             id: 'init-1',
             session_id: data.session.id,
@@ -410,7 +410,7 @@ export default function DiscoverySessionPage() {
 
       if (messages.length === 0) {
         const firstQ = CORE_QUESTIONS[0];
-        const greeting = `Hi ${nameInput.trim() || 'there'}! I'm VISIEN, your AI guide from Every Nation GG.\n\nWhether you already have a clear app in mind or just know what type of business or project this is for, I'm here to explore and shape your idea with you — no technical knowledge needed.\n\nLet's start here: ${firstQ.title}\n\n${firstQ.guidance}`;
+        const greeting = `Hi ${nameInput.trim() || 'there'}! I'm VISIEN, your AI guide from Every Nation GG.\n\nI'll help you shape your app idea into a ready-to-build blueprint — no technical background needed.\n\nLet's start here: ${firstQ.title}`;
         const initMsg: Message = {
           id: 'init-1',
           session_id: data.session?.id || '',

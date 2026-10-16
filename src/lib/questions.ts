@@ -2,9 +2,8 @@ import { QuestionDefinition } from './types';
 
 export const CHAPTERS = [
   { id: 1, title: 'Concept & Reality', subtitle: 'The idea, problem & core user flow' },
-  { id: 2, title: 'Experience & Specs', subtitle: 'Target platforms, payments & aesthetic vibe' },
-  { id: 3, title: 'Launch Blueprint', subtitle: 'V1 essentials, timeline & infrastructure' },
-  { id: 4, title: 'Architecture & Investment', subtitle: 'User roles, security, devices, data & budget' },
+  { id: 2, title: 'Experience & Vibe', subtitle: 'Platforms, payments & aesthetic feel' },
+  { id: 3, title: 'Launch & Investment', subtitle: 'V1 essentials, timeline & budget' },
 ] as const;
 
 export const CORE_QUESTIONS: QuestionDefinition[] = [
@@ -14,14 +13,14 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     chapter: 1,
     chapterTitle: 'Concept & Reality',
     number: 1,
-    title: 'What is this app going to be for, and do you already have a specific app in mind or would you like to brainstorm ideas together?',
-    guidance: 'Tell me about the business, project, or personal venture this is for. If you already have an app idea in mind, share it! If you only know your industry or goal, let me know and we can brainstorm high-impact concepts together.',
+    title: 'What kind of business or project is this app for?',
+    guidance: 'Tell me in a sentence or two. If you already have a clear app idea, share it! If you just know your business type or goal, we can brainstorm together.',
     chips: [
-      'For my business — I have an app idea in mind',
-      'For my business — let\'s brainstorm what app I need',
-      'Personal project or startup idea',
-      'Internal tool to streamline our workflow',
-      'Community or membership platform'
+      'For my business (clinic, store, service)',
+      'A new startup / app idea',
+      'Internal tool to streamline my team',
+      'Community or membership platform',
+      "I'm not sure — help me brainstorm"
     ]
   },
   {
@@ -29,13 +28,13 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     chapter: 1,
     chapterTitle: 'Concept & Reality',
     number: 2,
-    title: 'How are you or your users handling this today, and what is the biggest headache?',
-    guidance: 'Think about your current routine without this app—are you using spreadsheets, WhatsApp/Messenger, paper, or phone calls? Where do things get messy, slow, or frustrating?',
+    title: "What's the biggest headache or bottleneck you want this app to solve?",
+    guidance: 'Think about your current routine without this app — where do things get messy, slow, lost, or frustrating?',
     chips: [
-      'Orders & DMs get lost in Messenger / WhatsApp',
+      'Orders & inquiries get lost in DMs / chat',
       'Messy spreadsheets & manual inventory',
-      'Customers have no easy way to track progress',
-      'Manual paper forms & repetitive coordination',
+      'Customers have no easy self-service way',
+      'Repetitive manual coordination & paperwork',
       'Existing generic tools are too bloated or clunky'
     ]
   },
@@ -44,54 +43,39 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     chapter: 1,
     chapterTitle: 'Concept & Reality',
     number: 3,
-    title: 'Walk me through the main user journey—from opening the app to getting the result.',
-    guidance: 'If someone opens the app right now, what is the single most important action they take, and what should happen right after they complete it?',
+    title: 'When someone opens the app, what is the single most important thing they do?',
+    guidance: 'Walk me through the main path — from opening the app to getting the result or service.',
     chips: [
-      'Browse catalog → customize order → instant confirmation & tracking',
-      'Select service & date → book slot → calendar sync & reminder',
-      'Submit request / inquiry → admin notified → live status updates',
-      'Log in → view personal dashboard → access resources'
+      'Browse catalog → order & pay → track live status',
+      'Select service & date → book slot → automated reminders',
+      'Submit inquiry / request → receive live team updates',
+      'Log in → access personal dashboard, history & records'
     ]
   },
 
-  // Chapter 2: Experience & Specs
+  // Chapter 2: Experience & Vibe
   {
-    id: 'target_platform',
+    id: 'platform_and_payments',
     chapter: 2,
-    chapterTitle: 'Experience & Specs',
+    chapterTitle: 'Experience & Vibe',
     number: 4,
-    title: 'Where should this app live?',
-    guidance: 'Think about how your audience will access it. Do they need an App Store download, a quick link in their mobile browser, or a desktop/tablet interface?',
+    title: 'Where should this app live, and does it need to accept payments?',
+    guidance: 'Think about how your audience will access it (App Store, Web browser, or both) and whether money changes hands.',
     chips: [
-      'Mobile App (iOS & Android App Stores)',
-      'Responsive Web App (Runs in any browser without download)',
-      'Both Web & Mobile App',
-      'Tablet / iPad in workshop or store counter',
-      'Desktop / Laptop dashboard for staff'
-    ]
-  },
-  {
-    id: 'payments_and_integrations',
-    chapter: 2,
-    chapterTitle: 'Experience & Specs',
-    number: 5,
-    title: 'Does this app need to accept payments or connect with existing tools?',
-    guidance: 'Does money change hands inside the app? Does it need to connect to shipping couriers, inventory, Google Sheets, or social media?',
-    chips: [
-      'GCash, Maya & Online Card payments',
-      'Cash on Delivery / Bank transfer slip upload',
-      'Courier & shipping tracking (e.g. Lalamove, J&T)',
-      'Sync with Google Sheets or existing database',
-      'No payments needed (free or internal tool)'
+      'Mobile App (iOS/Android) + Online Payments (GCash, Maya, Card)',
+      'Responsive Web App (Browser) + Online Payments',
+      'Both Web & Mobile App + Online Payments',
+      'Internal Tool / Free (No payments needed)',
+      'Manual Payments (Bank transfer slip upload / Cash)'
     ]
   },
   {
     id: 'look_feel_inspiration',
     chapter: 2,
-    chapterTitle: 'Experience & Specs',
-    number: 6,
+    chapterTitle: 'Experience & Vibe',
+    number: 5,
     title: 'How should the app look and feel? Any aesthetic styles or apps you love?',
-    guidance: 'Think about colors, vibe (clean, bold, dark, playful, luxurious), and any apps you like—or styles you definitely want to avoid.',
+    guidance: 'Think about colors, vibe (clean minimal, sleek dark mode, luxury), and any apps you like — or styles to avoid.',
     chips: [
       'Warm minimal, clean & airy',
       'Sleek dark mode with modern glowing accents',
@@ -101,141 +85,35 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     ]
   },
 
-  // Chapter 3: Launch Blueprint
+  // Chapter 3: Launch & Investment
   {
     id: 'v1_launch_essentials',
     chapter: 3,
-    chapterTitle: 'Launch Blueprint',
-    number: 7,
+    chapterTitle: 'Launch & Investment',
+    number: 6,
     title: 'What absolutely has to be in Version 1 for the launch to be a success?',
-    guidance: 'Focus on the bare essentials that make the app genuinely useful on Day 1 without overcomplicating things.',
+    guidance: 'Focus on the bare essentials that make Day 1 a win without overcomplicating things.',
     chips: [
-      'Customer ordering & automated confirmation',
-      'Admin dashboard to manage orders & status',
-      'User login & saved order history',
+      'Core customer ordering / booking + instant confirmation',
+      'Admin dashboard to manage requests & live status',
+      'User login & saved order/appointment history',
       'Automated SMS / email / chat notifications',
-      'Simple product or service catalog'
+      'Lean MVP — launch as fast as possible'
     ]
   },
   {
-    id: 'timeline_and_horizon',
+    id: 'timeline_and_budget',
     chapter: 3,
-    chapterTitle: 'Launch Blueprint',
-    number: 8,
-    title: 'When are you hoping to launch, and if this succeeds, what is your long-term vision?',
-    guidance: 'Do you have an upcoming target date or season in mind? And down the road, where could this app grow?',
+    chapterTitle: 'Launch & Investment',
+    number: 7,
+    title: 'When are you hoping to launch, and what target budget range have you allocated?',
+    guidance: 'This helps Every Nation GG tailor the exact technology architecture, timeline milestones, and build quote to maximize your ROI.',
     chips: [
-      'As soon as possible (within 4–6 weeks)',
-      'Targeting next 2–3 months',
-      'Flexible timeline — focus on getting it right',
-      'Future: Scale to multi-branch & public subscriptions',
-      'Future: Built-in AI assistant & automated dispatch'
-    ]
-  },
-  {
-    id: 'infrastructure_preference',
-    chapter: 3,
-    chapterTitle: 'Launch Blueprint',
-    number: 9,
-    title: "How would you prefer your app's technical infrastructure and maintenance to be managed?",
-    guidance: "This is for planning only—you aren't purchasing anything now. We just want to know how you prefer hosting, databases, and accounts to be handled.",
-    chips: [
-      'Every Nation GG manages hosting, databases & updates',
-      'I prefer my own developer accounts (Apple, Google, AWS/Supabase)',
-      'Hybrid: ENGG builds it, then guides our team on handover',
-      "I'm not sure yet — recommend the best path for our stage"
-    ]
-  },
-
-  // Chapter 4: Architecture & Investment
-  {
-    id: 'user_roles_and_access',
-    chapter: 4,
-    chapterTitle: 'Architecture & Investment',
-    number: 10,
-    title: 'Who are all the different types of people using this app, and what should each be able to do?',
-    guidance: 'Beyond regular customers or users, will you need an Admin dashboard, staff/manager access, a vendor portal, or a delivery rider view? What should each role see and manage?',
-    chips: [
-      'Customers + Admin dashboard for business owner',
-      'Multi-role: Customers, Staff, Managers & Super Admin',
-      'Three-sided: Customers, Service Providers / Vendors & Admin',
-      'Single user type only (everyone has the same view)',
-      'Tiered members (Free vs Premium / VIP access)'
-    ]
-  },
-  {
-    id: 'authentication_and_access',
-    chapter: 4,
-    chapterTitle: 'Architecture & Investment',
-    number: 11,
-    title: 'How should users sign up or log in, and do accounts need manual approval?',
-    guidance: 'Think about sign-in convenience vs security. Do users need phone OTP (SMS), email & password, Google/Apple login, or can they browse as guests first?',
-    chips: [
-      'Phone number with SMS OTP verification',
-      'Social login: Google & Apple Sign-In',
-      'Email & password with magic link',
-      'Guest mode allowed (only log in to checkout/book)',
-      'Admin approval required before accounts can be used'
-    ]
-  },
-  {
-    id: 'notifications_and_alerts',
-    chapter: 4,
-    chapterTitle: 'Architecture & Investment',
-    number: 12,
-    title: "How should the app communicate and notify users when they're not on the screen?",
-    guidance: 'How do you want to keep users informed? Push notifications on their phone, SMS alerts, transactional emails, or chat app updates?',
-    chips: [
-      'Push notifications on mobile (order updates, reminders)',
-      'Automated SMS text alerts for critical updates',
-      'Branded email receipts & summary notifications',
-      'In-app notification center / activity feed',
-      'No notifications needed for V1'
-    ]
-  },
-  {
-    id: 'device_and_hardware',
-    chapter: 4,
-    chapterTitle: 'Architecture & Investment',
-    number: 13,
-    title: 'Does the app need to connect with device hardware or special device capabilities?',
-    guidance: 'Consider features like camera/QR barcode scanning, GPS live tracking, Bluetooth thermal printers for receipts, or working offline without internet.',
-    chips: [
-      'Camera scanning for QR codes / receipts / barcodes',
-      'GPS live location & distance tracking',
-      'Bluetooth thermal printer for order slips / receipts',
-      'Offline mode (store data locally when internet drops)',
-      'Standard device features only (no special hardware)'
-    ]
-  },
-  {
-    id: 'data_and_assets',
-    chapter: 4,
-    chapterTitle: 'Architecture & Investment',
-    number: 14,
-    title: 'Do you have existing data to migrate and brand assets ready, or will we build them from scratch?',
-    guidance: 'Do you already have product catalogs, spreadsheets, customer databases, logos, and color palettes ready to import, or will we help set those up?',
-    chips: [
-      'Spreadsheets ready to import (products, menus, prices)',
-      'Logo, brand colors & guidelines ready',
-      'Existing database / system to migrate data from',
-      'Starting fresh — no existing data to migrate',
-      'Need Every Nation GG to help create brand identity'
-    ]
-  },
-  {
-    id: 'budget_and_investment',
-    chapter: 4,
-    chapterTitle: 'Architecture & Investment',
-    number: 15,
-    title: 'What budget or investment range have you allocated for the design, development, and launch of Version 1?',
-    guidance: 'This helps Every Nation GG tailor the exact technology stack, architecture, and feature depth to maximize your ROI within your target investment.',
-    chips: [
-      'Lean MVP / Starter (₱50k – ₱120k / $1k – $2.5k)',
-      'Growth / Full-featured V1 (₱150k – ₱350k / $3k – $7k)',
-      'Scale / Comprehensive platform (₱400k – ₱800k+ / $8k – $15k+)',
-      'Enterprise / Custom quote based on full scope',
-      'Flexible — recommend the best balance for our goals'
+      'Targeting 4–6 weeks • Lean MVP (₱50k – ₱120k / $1k – $2.5k)',
+      'Targeting 2–3 months • Growth V1 (₱150k – ₱350k / $3k – $7k)',
+      'Full Platform • Scale tier (₱400k – ₱800k+ / $8k – $15k+)',
+      'Flexible timeline — recommend the best balance for our goals',
+      'Enterprise / Custom quote based on full scope'
     ]
   }
 ];

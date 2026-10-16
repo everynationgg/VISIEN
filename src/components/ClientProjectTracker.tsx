@@ -287,9 +287,9 @@ export function ClientProjectTracker({
               </div>
               <div>
                 <span className="pending-tag">Action Required</span>
-                <h3 className="pending-action-title">Additional Technical Questions Needed</h3>
+                <h3 className="pending-action-title">Questions Remaining</h3>
                 <p className="pending-action-desc">
-                  We have added {CORE_QUESTIONS.length - (session.current_question_index ?? 0)} essential questions covering user roles, authentication, notifications, hardware, and budget to finalize your build blueprint.
+                  You have {CORE_QUESTIONS.length - (session.current_question_index ?? 0)} quick questions left to finalize your build blueprint.
                 </p>
               </div>
             </div>
