@@ -28,7 +28,7 @@ export interface Session {
   client_clarification_replied_at?: string | null;
 }
 
-export type MessageRole = 'enos' | 'client' | 'system';
+export type MessageRole = 'visien' | 'enos' | 'client' | 'system';
 
 export interface Message {
   id: string;

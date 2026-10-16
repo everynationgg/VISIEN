@@ -22,7 +22,7 @@ export const EnosOrb: React.FC<EnosOrbProps> = ({
         width: `${size}px`,
         height: `${size}px`,
       }}
-      aria-label={`ENOS AI Guide (${state})`}
+      aria-label={`VISIEN AI Guide (${state})`}
     >
       {/* Outer ambient radiant aura */}
       <div className="orb-aura" />

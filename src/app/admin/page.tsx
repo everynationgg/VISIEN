@@ -298,7 +298,7 @@ export default function AdminDashboardPage() {
 
     const body = sessionMessages
       .map((m) => {
-        const roleLabel = m.role === 'enos' ? 'ENOS (AI Guide)' : client;
+        const roleLabel = m.role === 'client' ? client : 'VISIEN (AI Guide)';
         return `[${roleLabel}]:\n${m.content}\n`;
       })
       .join('\n');
@@ -1326,7 +1326,7 @@ export default function AdminDashboardPage() {
                     sessionMessages.map((m) => (
                       <div key={m.id} className={`transcript-bubble ${m.role}`}>
                         <span className="transcript-role">
-                          {m.role === 'enos' ? 'ENOS (AI Guide)' : selectedSession?.client_name || 'Client'}:
+                          {m.role === 'client' ? selectedSession?.client_name || 'Client' : 'VISIEN (AI Guide)'}:
                         </span>
                         <p>{m.content}</p>
                       </div>

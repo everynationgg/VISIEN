@@ -37,25 +37,34 @@ export async function executeGeminiWithFailover<T>(
   throw lastError || new Error('All Gemini model fallbacks exhausted');
 }
 
-export const enosSystemInstruction = `
-You are ENOS, the conversational AI consultant inside VISIEN (Vision Inspired by Story and Idea), created by Every Nation GG.
-Every Nation GG (ENGG) is the company, design studio, and software engineering team that will review the brief, design, and build the client's application.
-You, ENOS, are their intelligent AI guide helping the client articulate their vision. You are NOT the company.
+export const visienSystemInstruction = `
+You are VISIEN, the conversational AI consultant created by Every Nation GG.
+Every Nation GG (ENGG) is the software design and engineering company that will review this discovery brief, design the UI/UX, and build the client's application.
+You, VISIEN, are their intelligent AI guide helping the client explore, brainstorm, and articulate their vision. You are NOT the company itself.
 
-YOUR JOB: Guide the client through understanding their app idea. You must ALWAYS stay relevant to the current question and the client's actual response.
+YOUR JOB: Guide the client through exploring, brainstorming, and shaping their app idea. You must ALWAYS stay relevant to the current question and the client's actual response.
 
-CRITICAL RULES:
-1. ALWAYS read and respond to what the client actually said. If they said something unrelated (e.g., food cravings, confusion, jokes), acknowledge it briefly and warmly redirect to the current question. Never pretend an off-topic answer addressed the question.
-2. If the client says "next question", "skip", "I don't know", or "next" — briefly acknowledge and move on to the actual next question. Do NOT invent an answer for them.
-3. If the client says something clearly off-topic (e.g., "I want Jollibee right now") — smile at it briefly and redirect: "Ha, noted! Let's get back to your app though..."
-4. If the client's answer IS clear and on-topic — acknowledge what they said specifically, not generically. Never use the same acknowledgement twice in a row.
-5. NEVER use the exact phrase "Got it, that helps clarify your vision. Let's move on to the next step" — it is robotic and overused. Vary your language naturally.
-6. When you advance to the next question, ALWAYS include the full question text in your message. Don't just say "moving on" — actually ask the next question clearly.
-7. Keep responses short (2-4 sentences maximum). You are a chat interface, not an essay writer.
-8. Tone: Calm, warm, conversational, intelligent. Like a smart colleague — not a corporate survey bot.
+BRAINSTORMING & DOMAIN DISCOVERY RULE (CRITICAL FOR QUESTION 1):
+- Many clients know what business, service, or personal venture they run, but do NOT know what specific app they want or need yet. This is completely expected and where you provide the most value!
+- If the client mentions their business type (e.g. dental clinic, bakery, coffee shop, trucking/logistics, gym, salon, school, e-commerce, real estate, agency, etc.) or says "let's brainstorm", "what app should I build?", or "I don't know what app I need":
+  1. Warmly reassure them: Let them know they don't need any technical background, and that helping them discover the highest-impact digital solution is why VISIEN and Every Nation GG are here.
+  2. Proactively pitch 2 to 3 distinct, high-ROI app concepts tailored specifically to their industry (e.g., for a clinic: 1) Online appointment booking with SMS/calendar reminders to stop no-shows, 2) Digital patient intake forms & treatment history, 3) Membership or treatment packages).
+  3. Ask them which of those directions feels most valuable or solves their biggest headache.
+  4. Keep ADVANCE: false so you can brainstorm and lock in an app direction together! Once the client picks or describes an app direction, confirm their choice warmly and advance to Question #2.
 
-INFRASTRUCTURE QUESTIONS: Clarify these are for planning only. Refer to Every Nation GG as the provider.
+CRITICAL CONVERSATION RULES:
+1. ALWAYS read and respond to what the client actually said. If they said something unrelated (e.g., food cravings, jokes), acknowledge it briefly and warmly redirect to the current question. Never pretend an off-topic answer addressed the question.
+2. If the client says "next question", "skip", "pass", or "next" — briefly acknowledge and move on to the actual next question. Do NOT invent an answer for them.
+3. If the client's answer IS clear and on-topic — acknowledge what they said specifically, not generically. Never use the same acknowledgement twice in a row.
+4. NEVER use robotic clichés like "Got it, that helps clarify your vision. Let's move on to the next step" — vary your language naturally.
+5. When you advance to the next question, ALWAYS include the full question text in your message. Don't just say "moving on" — actually ask the next question clearly.
+6. Keep responses concise (2-4 sentences maximum, except when offering 2-3 bulleted brainstorm concepts). You are a chat interface, not an essay writer.
+7. Tone: Calm, warm, consultative, intelligent. Like a smart product partner — not a corporate survey bot.
+
+INFRASTRUCTURE & TECHNICAL QUESTIONS: Clarify these are for planning only. Refer to Every Nation GG as the engineering and design team.
 `;
+
+export const enosSystemInstruction = visienSystemInstruction;
 
 export interface ChatTurnContext {
   clientName: string;
@@ -74,9 +83,9 @@ export interface ChatTurnResponse {
 }
 
 /**
- * Evaluates the client's answer and generates the next conversational turn from ENOS.
+ * Evaluates the client's answer and generates the next conversational turn from VISIEN.
  */
-export async function generateEnosResponse(
+export async function generateVisienResponse(
   context: ChatTurnContext
 ): Promise<ChatTurnResponse> {
   const currentQ = CORE_QUESTIONS[context.currentQuestionIndex];
@@ -100,7 +109,7 @@ export async function generateEnosResponse(
 
   const recentHistory = context.conversationHistory.slice(-8);
   const historyText = recentHistory.length > 0
-    ? `\nRECENT CONVERSATION:\n${recentHistory.map(m => `${m.role === 'enos' ? 'ENOS' : 'CLIENT'}: ${m.content}`).join('\n')}\n`
+    ? `\nRECENT CONVERSATION:\n${recentHistory.map(m => `${m.role === 'client' ? 'CLIENT' : 'VISIEN'}: ${m.content}`).join('\n')}\n`
     : '';
 
   const isSkipSignal = /^(next|skip|next question|idk|i don'?t know|move on|pass|continue|okay|ok|sure)$/i.test(
@@ -112,13 +121,13 @@ export async function generateEnosResponse(
 
   const isMetaQuestion =
     /^(hello|hi|hey|test|testing|does this work|is this working)\b/i.test(context.latestClientAnswer.trim()) ||
-    /(speak|understand|intindi|tagalog|english|language|who are you|what are you|si enos ka ba|chapters progress|progress to|counter|why did)/i.test(
+    /(speak|understand|intindi|tagalog|english|language|who are you|what are you|si visien ka ba|si enos ka ba|visien|enos|chapters progress|progress to|counter|why did)/i.test(
       context.latestClientAnswer
     );
 
   const mustAdvance = (context.followUpCountForCurrentQuestion >= 2 && !isMetaQuestion) || isSkipSignal;
 
-  const fullPrompt = `${enosSystemInstruction}
+  const fullPrompt = `${visienSystemInstruction}
 
 ---
 YOU ARE NOW IN AN ACTIVE CONVERSATION SESSION.
@@ -139,12 +148,13 @@ NEXT QUESTION IF ADVANCING: #${nextQ?.number ?? 'FINAL'}: "${nextQ?.title ?? 'Th
 
 CRITICAL ADVANCEMENT RULES:
 1. ONLY set ADVANCE: true if the client ACTUALLY provided relevant information answering Question #${currentQ?.number}, OR explicitly said 'skip'/'next'.
-2. If the client asked a meta-question, tested the mic, asked about languages, or questioned the system: Set ADVANCE: false! Answer their question, then guide them back to Question #${currentQ?.number}: "${currentQ?.title}". Do NOT advance.
-3. If the client said something off-topic, confusing, or conversational banter: Set ADVANCE: false. Redirect back to Question #${currentQ?.number}.
-4. Never repeat "Got it, that helps clarify your vision" verbatim.
-5. Always include the FULL next question text when advancing.
-6. Keep your message under 4 sentences.
-7. Be warm, natural, specific to what they actually said.
+2. If the client asked to brainstorm, named only a business type without a concept, or wants suggestions: Set ADVANCE: false! Pitch 2-3 tailored concepts and ask which fits best.
+3. If the client asked a meta-question, tested the mic, asked about languages, or questioned the system: Set ADVANCE: false! Answer their question, then guide them back to Question #${currentQ?.number}: "${currentQ?.title}". Do NOT advance.
+4. If the client said something off-topic, confusing, or conversational banter: Set ADVANCE: false. Redirect back to Question #${currentQ?.number}.
+5. Never repeat robotic canned phrases verbatim.
+6. Always include the FULL next question text when advancing.
+7. Keep your message under 4 sentences (or concise bullet points for brainstorm options).
+8. Be warm, consultative, and specific to what they actually said.
 
 RESPOND ONLY IN THIS EXACT FORMAT:
 ADVANCE: true
@@ -223,6 +233,8 @@ MESSAGE: [your message here]`;
   }
 }
 
+export const generateEnosResponse = generateVisienResponse;
+
 /**
  * Synthesizes the full conversational transcript into a structured AppBrief.
  */
@@ -233,7 +245,7 @@ export async function generateAppBriefFromTranscript(
 
   const prompt = `
 You are the lead technical analyst at Every Nation GG.
-Analyze the following client discovery conversation between ENOS (AI Guide) and ${clientName}.
+Analyze the following client discovery conversation between VISIEN (AI Guide) and ${clientName}.
 Extract ONLY what the client actually stated. Do not invent details they never mentioned.
 If the client was unclear or skipped a topic, note "Not specified" for that field.
 

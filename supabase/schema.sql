@@ -42,7 +42,7 @@ create index if not exists idx_sessions_status on public.sessions(status);
 create table if not exists public.messages (
   id uuid primary key default uuid_generate_v4(),
   session_id uuid not null references public.sessions(id) on delete cascade,
-  role text not null check (role in ('enos', 'client', 'system')),
+  role text not null check (role in ('visien', 'enos', 'client', 'system')),
   content text not null,
   question_id text,
   is_follow_up boolean not null default false,

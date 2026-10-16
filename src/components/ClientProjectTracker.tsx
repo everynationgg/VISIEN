@@ -63,7 +63,7 @@ export function ClientProjectTracker({
 
   const copyTranscript = () => {
     const text = messages
-      .map((m) => `${m.role === 'enos' ? 'ENOS (AI Guide)' : session.client_name || 'Client'}: ${m.content}`)
+      .map((m) => `${m.role === 'client' ? session.client_name || 'Client' : 'VISIEN (AI Guide)'}: ${m.content}`)
       .join('\n\n');
     navigator.clipboard.writeText(text);
     setCopiedTranscript(true);
@@ -101,7 +101,7 @@ export function ClientProjectTracker({
       key: 'received',
       title: '1. Discovery Received',
       label: 'Received by ENGG Team',
-      subtext: 'Conversation with ENOS received and compiled for ENGG leads.',
+      subtext: 'Conversation with VISIEN received and compiled for ENGG leads.',
       icon: <CheckCircle2 size={18} />,
     },
     {
@@ -196,7 +196,7 @@ export function ClientProjectTracker({
       case 'received':
       default:
         return {
-          title: 'Conversation with ENOS Received by ENGG Team',
+          title: 'Conversation with VISIEN Received by ENGG Team',
           subtitle:
             'Your app discovery has been compiled and safely delivered to Every Nation GG. Our team is reviewing your vision.',
           badgeClass: 'badge-received',
@@ -441,7 +441,7 @@ export function ClientProjectTracker({
               onClick={() => setActiveTab('transcript')}
             >
               <MessageSquare size={15} />
-              <span>Full ENOS Conversation ({messages.length})</span>
+              <span>Full VISIEN Conversation ({messages.length})</span>
             </button>
 
             {activeTab === 'transcript' && (
@@ -586,7 +586,7 @@ export function ClientProjectTracker({
                   >
                     <div className="msg-header">
                       <span className="msg-author">
-                        {m.role === 'enos' ? 'ENOS (AI Guide)' : session.client_name || 'Client'}
+                        {m.role === 'client' ? session.client_name || 'Client' : 'VISIEN (AI Guide)'}
                       </span>
                       <span className="msg-time">
                         {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

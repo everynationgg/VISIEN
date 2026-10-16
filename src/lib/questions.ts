@@ -14,14 +14,14 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     chapter: 1,
     chapterTitle: 'Concept & Reality',
     number: 1,
-    title: 'Tell me about the app you have in mind and who it is for.',
-    guidance: 'In your own words, what is the core idea of the app, and who do you picture actually opening and using it?',
+    title: 'What is this app going to be for, and do you already have a specific app in mind or would you like to brainstorm ideas together?',
+    guidance: 'Tell me about the business, project, or personal venture this is for. If you already have an app idea in mind, share it! If you only know your industry or goal, let me know and we can brainstorm high-impact concepts together.',
     chips: [
-      'Customer booking & ordering app',
-      'Community & membership portal',
-      'E-commerce / shop experience',
-      'Internal operations & team tool',
-      'Content & service platform'
+      'For my business — I have an app idea in mind',
+      'For my business — let\'s brainstorm what app I need',
+      'Personal project or startup idea',
+      'Internal tool to streamline our workflow',
+      'Community or membership platform'
     ]
   },
   {

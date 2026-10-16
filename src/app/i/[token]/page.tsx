@@ -145,7 +145,7 @@ export default function DiscoverySessionPage() {
         // Guarantee initial greeting if in active chat and no messages recorded yet
         if (loadedMessages.length === 0 && data.session.consent_given) {
           const firstQ = CORE_QUESTIONS[data.session.current_question_index || 0];
-          const greeting = `Hi ${(data.session.client_name || '').trim() || 'there'}! I'm ENOS, your AI guide here in VISIEN.\n\nI'll ask you about the app idea you have in mind — no technical knowledge needed, just share your thoughts naturally.\n\nLet's start here: ${firstQ.title}\n\n${firstQ.guidance}`;
+          const greeting = `Hi ${(data.session.client_name || '').trim() || 'there'}! I'm VISIEN, your AI guide from Every Nation GG.\n\nWhether you already have a clear app in mind or just know what type of business or project this is for, I'm here to explore and shape your idea with you — no technical knowledge needed.\n\nLet's start here: ${firstQ.title}\n\n${firstQ.guidance}`;
           const initMsg: Message = {
             id: 'init-1',
             session_id: data.session.id,
@@ -410,7 +410,7 @@ export default function DiscoverySessionPage() {
 
       if (messages.length === 0) {
         const firstQ = CORE_QUESTIONS[0];
-        const greeting = `Hi ${nameInput.trim() || 'there'}! I'm ENOS, your AI guide here in VISIEN.\n\nI'll ask you about the app idea you have in mind — no technical knowledge needed, just share your thoughts naturally.\n\nLet's start here: ${firstQ.title}\n\n${firstQ.guidance}`;
+        const greeting = `Hi ${nameInput.trim() || 'there'}! I'm VISIEN, your AI guide from Every Nation GG.\n\nWhether you already have a clear app in mind or just know what type of business or project this is for, I'm here to explore and shape your idea with you — no technical knowledge needed.\n\nLet's start here: ${firstQ.title}\n\n${firstQ.guidance}`;
         const initMsg: Message = {
           id: 'init-1',
           session_id: data.session?.id || '',
@@ -864,8 +864,8 @@ export default function DiscoverySessionPage() {
       <div className="discovery-fullscreen">
         <EnosOrb state="speaking" size={110} />
         <div className="visien-card consent-card">
-          <p className="intro-line">Hi, <strong>{nameInput}</strong>. You're now in <strong>VISIEN</strong> — Vision Inspired by Story and Idea, by Every Nation.</p>
-          <p className="intro-line">I'm <strong>ENOS</strong>, your AI guide. I'll ask you questions about the app you want to create — your idea, goals, users, and how you imagine it looking and working.</p>
+          <p className="intro-line">Hi, <strong>{nameInput}</strong>. You're now in <strong>VISIEN</strong> — Vision Inspired by Story and Idea, by Every Nation GG.</p>
+          <p className="intro-line">I'm <strong>VISIEN</strong>, your AI guide. I'll help you explore and shape the app you want to create — your idea, goals, users, and how you imagine it looking and working. If you're not sure of the exact app yet, we can brainstorm ideas tailored to your business or project.</p>
           <p className="intro-line">Your answers will be used by <strong>Every Nation GG</strong> to understand your vision and prepare your project.</p>
           <p className="ready-q">Are you ready to begin?</p>
           <div className="consent-btns">
@@ -923,7 +923,7 @@ export default function DiscoverySessionPage() {
             </div>
             <h3 className="end-confirm-title">Finish Discovery Early?</h3>
             <p className="end-confirm-desc">
-              Ready to wrap up? ENOS will synthesize everything you&apos;ve shared so far into your App Vision brief right now.
+              Ready to wrap up? VISIEN will synthesize everything you&apos;ve shared so far into your App Vision brief right now.
             </p>
             <div className="end-confirm-actions">
               <button
