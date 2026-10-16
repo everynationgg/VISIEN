@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Session, AppBrief, Message, ProjectProgressStatus } from '@/lib/types';
 import { EnosOrb } from '@/components/EnosOrb';
 import { CORE_QUESTIONS } from '@/lib/questions';
@@ -50,8 +50,15 @@ export function ClientProjectTracker({
   const [clarificationInput, setClarificationInput] = useState(
     session.client_clarification_reply || ''
   );
+  const [showManualReplyBox, setShowManualReplyBox] = useState(false);
   const [isSubmittingClarification, setIsSubmittingClarification] = useState(false);
   const [clarificationSuccess, setClarificationSuccess] = useState(false);
+
+  useEffect(() => {
+    if (session.client_clarification_reply && !clarificationInput) {
+      setClarificationInput(session.client_clarification_reply);
+    }
+  }, [session.client_clarification_reply]);
 
   const currentStatus: ProjectProgressStatus = session.project_status || 'received';
 
@@ -325,29 +332,45 @@ export function ClientProjectTracker({
           </div>
         </div>
 
-        {/* Interactive Clarification Box (Active when needs_info) */}
-        {currentStatus === 'needs_info' && (
-          <div className="visien-card clarification-card">
+        {/* Interactive Clarification / Response Box */}
+        {(currentStatus === 'needs_info' || Boolean(session.project_status_note) || showManualReplyBox) ? (
+          <div className={`visien-card clarification-card ${currentStatus === 'needs_info' ? 'mode-needs-info' : 'mode-reply'}`}>
             <div className="clarification-header">
               <div className="clarification-icon-wrap">
-                <AlertCircle size={20} color="#EA580C" />
+                {currentStatus === 'needs_info' ? (
+                  <AlertCircle size={20} color="#EA580C" />
+                ) : (
+                  <MessageSquare size={20} color="var(--violet-primary)" />
+                )}
               </div>
               <div>
-                <h3 className="clarification-title">Action Requested: Clarify Your Project Details</h3>
+                <h3 className="clarification-title">
+                  {currentStatus === 'needs_info'
+                    ? 'Action Requested: Clarify Your Project Details'
+                    : 'Reply to Every Nation GG Engineering'}
+                </h3>
                 <p className="clarification-desc">
-                  You can submit a quick note directly to our engineering leads below, or wait for our team to contact you via email.
+                  {currentStatus === 'needs_info'
+                    ? 'You can submit a quick note directly to our engineering leads below, or wait for our team to contact you via email.'
+                    : 'Have an answer to the team’s update or question above? Submit your response directly to our engineering leads.'}
                 </p>
               </div>
             </div>
 
             <form onSubmit={handleClarificationSubmit} className="clarification-form">
               <label className="clarification-input-label">
-                Your Clarification or Additional Notes:
+                {currentStatus === 'needs_info'
+                  ? 'Your Clarification or Additional Notes:'
+                  : 'Your Response to ENGG Team:'}
               </label>
               <textarea
                 className="clarification-textarea"
                 rows={3}
-                placeholder="e.g. For our v1 MVP, we want Web first, and we prefer Stripe for payments..."
+                placeholder={
+                  currentStatus === 'needs_info'
+                    ? 'e.g. For our v1 MVP, we want Web first, and we prefer Stripe for payments...'
+                    : 'Type your answer or any notes for the engineering team here...'
+                }
                 value={clarificationInput}
                 onChange={(e) => setClarificationInput(e.target.value)}
               />
@@ -374,9 +397,20 @@ export function ClientProjectTracker({
             {clarificationSuccess && (
               <div className="clarification-success-banner">
                 <Check size={14} />
-                <span>Your clarification was successfully delivered to the Every Nation GG team!</span>
+                <span>Your message was successfully delivered to the Every Nation GG team!</span>
               </div>
             )}
+          </div>
+        ) : (
+          <div className="manual-reply-trigger-box">
+            <button
+              type="button"
+              className="manual-reply-toggle-btn"
+              onClick={() => setShowManualReplyBox(true)}
+            >
+              <MessageSquare size={14} />
+              <span>Have an update or note for the engineering leads? Click to send a message</span>
+            </button>
           </div>
         )}
 
@@ -937,8 +971,51 @@ export function ClientProjectTracker({
 
         .clarification-card {
           padding: 24px 28px;
+        }
+
+        .clarification-card.mode-needs-info {
           border: 1.5px solid rgba(234, 88, 12, 0.4);
           background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 247, 237, 0.9));
+        }
+
+        .clarification-card.mode-reply {
+          border: 1.5px solid rgba(124, 58, 237, 0.28);
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 243, 255, 0.92));
+        }
+
+        .clarification-card.mode-reply .clarification-icon-wrap {
+          background: #EDE9FE;
+        }
+
+        .clarification-card.mode-reply .clarification-title {
+          color: var(--violet-deep);
+        }
+
+        .manual-reply-trigger-box {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: -6px;
+          margin-bottom: 6px;
+        }
+
+        .manual-reply-toggle-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          background: transparent;
+          border: 1px dashed var(--border-subtle);
+          padding: 8px 14px;
+          border-radius: var(--radius-sm);
+          font-size: 13px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .manual-reply-toggle-btn:hover {
+          background: rgba(124, 58, 237, 0.05);
+          color: var(--violet-primary);
+          border-color: var(--violet-primary);
         }
 
         .clarification-header {
