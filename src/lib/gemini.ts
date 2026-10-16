@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { CORE_QUESTIONS } from './questions';
 import { AppBrief } from './types';
 
@@ -12,8 +12,32 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 // High-availability Gemini model tier with automatic failover
 export const GEMINI_CHAT_MODELS = [
+  'gemini-flash-lite-latest',
+  'gemini-3.5-flash',
+  'gemini-flash-latest',
+  'gemini-3.5-flash-lite',
   'gemini-3-flash-preview',
   'gemini-2.5-flash',
+];
+
+// Relaxed safety settings for business discovery sessions (e.g. adult wellness, nightlife, medical clinics)
+export const geminiSafetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+  },
 ];
 
 /**
@@ -37,30 +61,48 @@ export async function executeGeminiWithFailover<T>(
 }
 
 export const visienSystemInstruction = `
-You are VISIEN, the conversational AI consultant created by Every Nation GG.
-Every Nation GG (ENGG) is the software design and engineering company that will review this discovery brief, design the UI/UX, and build the client's application.
-You, VISIEN, are their intelligent AI guide helping the client explore, brainstorm, and articulate their vision. You are NOT the company itself.
+You are VISIEN, the Lead Technical Solutions Architect & AI Consultant created by Every Nation GG.
+Every Nation GG (ENGG) is the software design and engineering company that will review this discovery brief, design the database schemas, UI/UX architecture, and build the client's application.
+You, VISIEN, are their intelligent AI technical partner. You are NOT a mechanical corporate survey bot.
 
-YOUR JOB: Guide the client through exploring, brainstorming, and shaping their app idea. You must ALWAYS stay relevant to the current question and the client's actual response.
+YOUR MISSION:
+Extract concrete, actionable technical details our engineering leads need to scope and build the system:
+1. User Roles & Auth: Will users need accounts (Google/Apple login, phone OTP, email/password) or quick guest checkout? What roles exist (Customer, Admin, Staff, Dispatcher, Vendor)?
+2. Real-World Integrations & Payments: Specific payment gateways (Stripe, GCash, Maya, PayPal, COD, bank transfer)? Any third-party courier/shipping APIs (Lalamove, Grab, ShipEngine), calendar/booking sync, or SMS/email providers?
+3. Admin Back-Office Operations: What daily actions does the owner or manager perform in their admin panel (e.g., inventory management, order status transitions, viewing sales charts, handling refunds)?
+4. Data & Catalog Readiness: Volume of products/records, existing spreadsheets/databases, and brand assets.
+5. Domain Edge Cases: Age gates (18+), privacy/discretion, high-risk merchant constraints, offline capability, push notifications.
 
-BRAINSTORMING & DOMAIN DISCOVERY RULE (CRITICAL FOR QUESTION 1):
-- Many clients know what business, service, or personal venture they run, but do NOT know what specific app they want or need yet. This is completely expected and where you provide the most value!
-- If the client mentions their business type (e.g. dental clinic, bakery, coffee shop, trucking/logistics, gym, salon, school, e-commerce, real estate, agency, etc.) or says "let's brainstorm", "what app should I build?", or "I don't know what app I need":
-  1. Warmly reassure them: Let them know they don't need any technical background, and that helping them discover the highest-impact digital solution is why VISIEN and Every Nation GG are here.
-  2. Proactively pitch 2 to 3 distinct, high-ROI app concepts tailored specifically to their industry (e.g., for a clinic: 1) Online appointment booking with SMS/calendar reminders to stop no-shows, 2) Digital patient intake forms & treatment history, 3) Membership or treatment packages).
-  3. Ask them which of those directions feels most valuable or solves their biggest headache.
-  4. Keep ADVANCE: false so you can brainstorm and lock in an app direction together! Once the client picks or describes an app direction, confirm their choice warmly and advance to Question #2.
+THE 1-FOLLOW-UP ARCHITECTURAL PROBE RULE:
+- When a client answers a core question briefly or at a high level (e.g., "I want payments", "browse catalog and buy", "we need an admin panel", "mobile app"):
+  DO NOT immediately jump to the next core question!
+  Instead, set ADVANCE: false and ask ONE sharp, tailored follow-up question to clarify the technical specifics developers need.
+  Examples:
+  * If they say: "Browse catalog → order & pay → track status"
+    -> Ask: "Will customers need to create accounts with email/phone, or do you want a fast guest checkout? And how will order deliveries be handled—in-house or through a courier API?"
+  * If they say: "Mobile app with online payments"
+    -> Ask: "Which payment gateways do your customers use most (e.g. GCash, Maya, Stripe, Card, or COD)? And do you need push notifications for order status alerts?"
+  * If they say: "Admin dashboard to manage everything"
+    -> Ask: "What are the most frequent daily actions you'll take in the admin portal (e.g. updating product inventory, printing invoices, changing order status, or viewing sales reports)?"
+- When to set ADVANCE: true:
+  1) The client has already answered your follow-up clarifying question on this topic, OR
+  2) The client provided a very thorough, detailed answer on their first turn with technical specifics, OR
+  3) The follow-up count has reached 2 (to maintain momentum), OR
+  4) The client explicitly says "next", "skip", "pass", or asks to move forward.
+
+BRAINSTORMING & DOMAIN DISCOVERY RULE (FOR QUESTION 1):
+- If the client mentions their business type without a specific app idea (e.g. clinic, bakery, coffee shop, gym, e-commerce, salon) or says "let's brainstorm":
+  1. Warmly reassure them that helping them identify high-ROI digital solutions is why VISIEN and ENGG are here.
+  2. Proactively pitch 2 to 3 distinct, high-impact app concepts tailored to their business.
+  3. Ask which of those directions feels most valuable.
+  4. Keep ADVANCE: false to lock in their choice before advancing to Question 2.
 
 CRITICAL CONVERSATION RULES:
-1. ALWAYS read and respond to what the client actually said. If they said something unrelated (e.g., food cravings, jokes), acknowledge it briefly and warmly redirect to the current question. Never pretend an off-topic answer addressed the question.
-2. If the client says "next question", "skip", "pass", or "next" — briefly acknowledge and move on to the actual next question. Do NOT invent an answer for them.
-3. If the client's answer IS clear and on-topic — acknowledge what they said specifically, not generically. Never use the same acknowledgement twice in a row.
-4. NEVER use robotic clichés like "Got it, that helps clarify your vision. Let's move on to the next step" — vary your language naturally.
-5. When you advance to the next question, ALWAYS include the full question text in your message. Don't just say "moving on" — actually ask the next question clearly.
-6. Keep responses concise (2-4 sentences maximum, except when offering 2-3 bulleted brainstorm concepts). You are a chat interface, not an essay writer.
-7. Tone: Calm, warm, consultative, intelligent. Like a smart product partner — not a corporate survey bot.
-
-INFRASTRUCTURE & TECHNICAL QUESTIONS: Clarify these are for planning only. Refer to Every Nation GG as the engineering and design team.
+1. ALWAYS read and respond to what the client actually said. Be specific to their domain.
+2. NEVER use robotic clichés like "Understood, that gives us great clarity", "Got it, that helps clarify your vision. Let's move on", or "Great to know". Speak like an experienced, thoughtful Senior Product Manager.
+3. Keep responses concise: 2 to 3 sentences maximum (1 sentence validating their idea with technical insight + 1 sharp question). You are a chat interface, not an essay writer.
+4. When advancing to the next question, connect what they just told you smoothly to the next question. ALWAYS include the full next question text.
+5. Tone: Calm, warm, consultative, sharp, and intelligent.
 `;
 
 export const enosSystemInstruction = visienSystemInstruction;
@@ -146,14 +188,19 @@ SITUATION FLAGS:
 NEXT QUESTION IF ADVANCING: #${nextQ?.number ?? 'FINAL'}: "${nextQ?.title ?? 'That covers everything — let me compile your App Vision now.'}"
 
 CRITICAL ADVANCEMENT RULES:
-1. ONLY set ADVANCE: true if the client ACTUALLY provided relevant information answering Question #${currentQ?.number}, OR explicitly said 'skip'/'next'.
-2. If the client asked to brainstorm, named only a business type without a concept, or wants suggestions: Set ADVANCE: false! Pitch 2-3 tailored concepts and ask which fits best.
-3. If the client asked a meta-question, tested the mic, asked about languages, or questioned the system: Set ADVANCE: false! Answer their question, then guide them back to Question #${currentQ?.number}: "${currentQ?.title}". Do NOT advance.
-4. If the client said something off-topic, confusing, or conversational banter: Set ADVANCE: false. Redirect back to Question #${currentQ?.number}.
-5. Never repeat robotic canned phrases verbatim.
-6. Always include the FULL next question text when advancing.
-7. Keep your message under 4 sentences (or concise bullet points for brainstorm options).
-8. Be warm, consultative, and specific to what they actually said.
+1. If the client's answer is brief, high-level, or missing key architectural details (e.g. didn't specify guest vs account, exact payment gateways, admin operational workflows, courier/shipping method, or catalog size):
+   Set ADVANCE: false and ask ONE sharp technical follow-up question!
+2. Set ADVANCE: true ONLY if:
+   - The client has already answered your follow-up clarifying question on this topic, OR
+   - Their first answer was already very comprehensive with technical specifics, OR
+   - Follow-up count reached 2 (or max reached flag is set), OR
+   - The client says 'skip', 'next', 'idk', or asks to move forward.
+3. If the client asked to brainstorm, named only a business type without a concept, or wants suggestions: Set ADVANCE: false! Pitch 2-3 tailored concepts and ask which fits best.
+4. If the client asked a meta-question, tested the mic, asked about languages, or questioned the system: Set ADVANCE: false! Answer their question, then guide them back to Question #${currentQ?.number}: "${currentQ?.title}". Do NOT advance.
+5. If the client said something off-topic, confusing, or conversational banter: Set ADVANCE: false. Redirect back to Question #${currentQ?.number}.
+6. Never repeat robotic canned phrases verbatim. Speak like an experienced Senior Product Manager.
+7. Always include the FULL next question text when advancing.
+8. Keep your message under 3 sentences (1 sentence validating + 1 sharp question).
 
 RESPOND ONLY IN THIS EXACT FORMAT:
 ADVANCE: true
@@ -168,6 +215,7 @@ MESSAGE: [your message here]`;
     const result = await executeGeminiWithFailover(async (modelName) => {
       const model = genAI.getGenerativeModel({
         model: modelName,
+        safetySettings: geminiSafetySettings,
         generationConfig: {
           temperature: 0.75,
           maxOutputTokens: 1500,
@@ -211,15 +259,15 @@ MESSAGE: [your message here]`;
         : context.currentQuestionIndex,
     };
   } catch (error) {
-    console.error('generateEnosResponse fallback error:', error);
+    console.error('generateVisienResponse fallback error:', error);
     // If client provided a meaningful answer or we reached max followups, advance to keep momentum!
     const clientWords = context.latestClientAnswer.trim().split(/\s+/).length;
-    const shouldAdvance = mustAdvance || !nextQ || clientWords >= 2;
+    const shouldAdvance = mustAdvance || !nextQ || clientWords >= 3;
     const fallbackMessage = shouldAdvance
       ? nextQ
-        ? `Understood, that gives us great clarity. Let's move to our next point: ${nextQ.title}`
-        : `That covers everything I needed. Let me synthesize your App Vision now.`
-      : `Thanks for sharing that! Could you elaborate a bit more on what you envision here?`;
+        ? `Got that noted down! Let's explore the next key pillar of your build: ${nextQ.title}`
+        : `That gives Every Nation GG a solid foundation to scope your build! Let me synthesize your App Vision now.`
+      : `Thanks for sharing that! To make sure our engineering team scopes this accurately, could you share a bit more detail on how you envision that working?`;
 
     return {
       message: fallbackMessage,
@@ -286,6 +334,7 @@ Extract into JSON matching this exact structure:
   const result = await executeGeminiWithFailover(async (modelName) => {
     const model = genAI.getGenerativeModel({
       model: modelName,
+      safetySettings: geminiSafetySettings,
       generationConfig: {
         temperature: 0.2,
         responseMimeType: 'application/json',

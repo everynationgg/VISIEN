@@ -44,12 +44,12 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     chapterTitle: 'Concept & Reality',
     number: 3,
     title: 'When someone opens the app, what is the single most important thing they do?',
-    guidance: 'Walk me through the main path — from opening the app to getting the result or service.',
+    guidance: 'Walk me through the main path — from opening the app to getting the result or service. (Think about whether users need accounts or can browse as guests).',
     chips: [
-      'Browse catalog → order & pay → track live status',
+      'Browse catalog → guest or account checkout → live order tracking',
       'Select service & date → book slot → automated reminders',
       'Submit inquiry / request → receive live team updates',
-      'Log in → access personal dashboard, history & records'
+      'Log in (Google / phone OTP) → access personal dashboard & records'
     ]
   },
 
@@ -60,13 +60,13 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     chapterTitle: 'Experience & Vibe',
     number: 4,
     title: 'Where should this app live, and does it need to accept payments?',
-    guidance: 'Think about how your audience will access it (App Store, Web browser, or both) and whether money changes hands.',
+    guidance: 'Think about how your audience will access it (iOS/Android App Stores, Web browser) and which payment gateways (GCash, Maya, Stripe, Card, COD) you need.',
     chips: [
-      'Mobile App (iOS/Android) + Online Payments (GCash, Maya, Card)',
-      'Responsive Web App (Browser) + Online Payments',
-      'Both Web & Mobile App + Online Payments',
+      'Mobile App (iOS/Android) + GCash / Maya / Card payments',
+      'Responsive Web App (Browser) + Stripe / Card payments',
+      'Both Web & Mobile App + Online Payments & COD',
       'Internal Tool / Free (No payments needed)',
-      'Manual Payments (Bank transfer slip upload / Cash)'
+      'Manual Payments (Bank transfer slip upload / COD)'
     ]
   },
   {
@@ -91,12 +91,12 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     chapter: 3,
     chapterTitle: 'Launch & Investment',
     number: 6,
-    title: 'What absolutely has to be in Version 1 for the launch to be a success?',
-    guidance: 'Focus on the bare essentials that make Day 1 a win without overcomplicating things.',
+    title: 'What absolutely has to be in Version 1 for launch — both for your users and your admin team?',
+    guidance: 'Focus on the essentials: customer ordering/booking, notifications, and what tools your admin team needs behind the scenes on Day 1.',
     chips: [
       'Core customer ordering / booking + instant confirmation',
-      'Admin dashboard to manage requests & live status',
-      'User login & saved order/appointment history',
+      'Admin dashboard to manage requests, inventory & live status',
+      'User accounts & saved order/appointment history',
       'Automated SMS / email / chat notifications',
       'Lean MVP — launch as fast as possible'
     ]
