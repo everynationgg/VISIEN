@@ -170,7 +170,7 @@ MESSAGE: [your message here]`;
         model: modelName,
         generationConfig: {
           temperature: 0.75,
-          maxOutputTokens: 500,
+          maxOutputTokens: 1500,
           topP: 0.9,
         },
       });

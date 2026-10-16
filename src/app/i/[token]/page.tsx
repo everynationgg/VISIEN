@@ -11,37 +11,62 @@ import { CORE_QUESTIONS } from '@/lib/questions';
 import { Session, Message, AppBrief } from '@/lib/types';
 import { Send, Mic, MicOff, ArrowRight, CheckCircle2, Copy, Check, Sparkles } from 'lucide-react';
 
-// Typewriter hook: animates text character by character
-function useTypewriter(text: string, speed: number = 18) {
+// Typewriter hook: fast, smooth adaptive text streaming
+function useTypewriter(text: string) {
   const [displayed, setDisplayed] = useState('');
   const [done, setDone] = useState(false);
 
   useEffect(() => {
+    if (!text) {
+      setDisplayed('');
+      setDone(true);
+      return;
+    }
+
+    const totalChars = text.length;
+    // Fast adaptive streaming:
+    // Short text: 2 chars every 10ms (~350ms total)
+    // Medium text: 3-4 chars every 8ms (~600ms total)
+    // Long text: 6 chars every 8ms (~900ms - 1.2s total)
+    const step = totalChars > 300 ? 6 : totalChars > 100 ? 3 : 2;
+    const tickMs = 8;
+
+    let i = 0;
     setDisplayed('');
     setDone(false);
-    if (!text) return;
-    let i = 0;
+
     const interval = setInterval(() => {
-      i++;
+      i = Math.min(i + step, totalChars);
       setDisplayed(text.slice(0, i));
-      if (i >= text.length) {
+      if (i >= totalChars) {
         clearInterval(interval);
         setDone(true);
       }
-    }, speed);
-    return () => clearInterval(interval);
-  }, [text, speed]);
+    }, tickMs);
 
-  return { displayed, done };
+    return () => clearInterval(interval);
+  }, [text]);
+
+  const finishInstantly = () => {
+    setDisplayed(text);
+    setDone(true);
+  };
+
+  return { displayed, done, finishInstantly };
 }
 
-// Individual ENOS message with typewriter effect
+// Individual VISIEN message with fast streaming typewriter effect
 function EnosMessage({ content, isNew }: { content: string; isNew: boolean }) {
-  const { displayed, done } = useTypewriter(isNew ? content : '', 16);
+  const { displayed, done, finishInstantly } = useTypewriter(isNew ? content : '');
   const text = isNew ? displayed : content;
 
   return (
-    <div className="message-bubble enos-bubble">
+    <div
+      className="message-bubble enos-bubble"
+      onClick={!done ? finishInstantly : undefined}
+      style={{ cursor: !done ? 'pointer' : 'default' }}
+      title={!done ? 'Click to show full message immediately' : undefined}
+    >
       <p className="message-content">
         {text}
         {isNew && !done && <span className="typing-cursor">|</span>}
@@ -49,6 +74,7 @@ function EnosMessage({ content, isNew }: { content: string; isNew: boolean }) {
     </div>
   );
 }
+
 
 export default function DiscoverySessionPage() {
   const params = useParams();
