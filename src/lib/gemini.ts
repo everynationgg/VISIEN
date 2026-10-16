@@ -278,6 +278,7 @@ Extract into JSON matching this exact structure:
   "budget_range": "Target investment or budget range described for V1",
   "future_horizon": "Long-term vision as client described",
   "infrastructure_preference": "Client's infrastructure preference",
+  "concept_image_prompt": "A 30-word prompt describing a flat 2D mobile app UI interface screenshot. Focus on: layout, color palette, dark mode/glows, product/service cards, navigation. Strictly exclude hands, phones, 3D angles, and explicit vulgar words to avoid image filter blur.",
   "additional_notes": "Any other specific points mentioned"
 }
 `;
@@ -307,19 +308,30 @@ Extract into JSON matching this exact structure:
  */
 export async function generateAppConceptImage(
   sessionId: string,
-  brief: Partial<AppBrief>,
+  brief: Partial<AppBrief> & { concept_image_prompt?: string },
   supabaseClient: any
 ): Promise<string | null> {
   try {
-    const title = brief.project_title || 'Modern Mobile App';
-    const visual = brief.visual_direction || 'clean minimalist, sleek modern aesthetic';
-    const users = brief.target_users ? `for ${brief.target_users}` : '';
-    const isWeb = (brief.target_platform || '').toLowerCase().includes('web') && !(brief.target_platform || '').toLowerCase().includes('mobile');
-    const platform = isWeb ? 'web application dashboard UI mockup' : 'iOS mobile application UI screen mockup';
+    let promptText = brief.concept_image_prompt || '';
+    if (!promptText) {
+      const title = brief.project_title || 'Modern Mobile Application';
+      const visual = (brief.visual_direction || 'sleek dark mode with glowing accents')
+        .replace(/fuck\w*|booty|naked|sex|porn\w*|dick|pussy|penis/gi, 'luxury discreet boutique')
+        .slice(0, 120);
+      promptText = `flat 2D mobile app UI design screenshot, direct front-facing view, NO hands, NO physical phone, ${visual}, app interface for ${title}, clean UI cards, bottom navigation bar, Figma digital design`;
+    }
 
-    const promptText = `modern elegant ${platform}, app concept for "${title}", ${visual}, ${users}, clean UI design, soft lighting, trending on Dribbble, Figma mockup presentation, high resolution`;
+    // Always enforce flat UI screen framing and remove phone-in-hand / mockup triggers
+    promptText = promptText
+      .replace(/mockup|presentation|held in hand|hand holding|device frame/gi, 'digital interface')
+      .trim();
+
+    if (!promptText.toLowerCase().includes('no hands')) {
+      promptText = `flat 2D mobile app UI design screenshot, direct front-facing view, NO hands, NO physical phone, ${promptText}`;
+    }
+
     const encoded = encodeURIComponent(promptText.slice(0, 320));
-    const genUrl = `https://image.pollinations.ai/prompt/${encoded}?width=768&height=1344&nologo=true&model=flux`;
+    const genUrl = `https://image.pollinations.ai/prompt/${encoded}?width=768&height=1344&nologo=true`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
