@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import StyledJsxRegistry from './registry';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -32,8 +33,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="visien-ambient-glow" aria-hidden="true" />
-        <main>{children}</main>
+        <StyledJsxRegistry>
+          <div className="visien-ambient-glow" aria-hidden="true" />
+          <main>{children}</main>
+        </StyledJsxRegistry>
       </body>
     </html>
   );

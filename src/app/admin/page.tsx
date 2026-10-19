@@ -453,7 +453,7 @@ export default function AdminDashboardPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="admin-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '24px' }}>
+      <div className="admin-lock-container">
         <div className="visien-card" style={{ maxWidth: '440px', width: '100%', padding: '40px 32px', textAlign: 'center', border: '1px solid rgba(139, 92, 246, 0.3)', boxShadow: '0 24px 60px rgba(0, 0, 0, 0.7), 0 0 50px rgba(139, 92, 246, 0.15)' }}>
           <div style={{ width: '64px', height: '64px', borderRadius: '18px', background: 'rgba(124, 58, 237, 0.18)', border: '1px solid rgba(124, 58, 237, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto', color: '#c084fc', boxShadow: '0 0 25px rgba(124, 58, 237, 0.3)' }}>
             <Lock size={28} />

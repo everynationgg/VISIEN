@@ -69,6 +69,38 @@ body {
   overflow-x: hidden;
 }
 
+/* Core Page Layouts — Pre-loaded in global stylesheet to eliminate Flash of Unstyled Content (FOUC) */
+.home-container {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+.home-content {
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.admin-lock-container {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.admin-container {
+  min-height: 100dvh;
+  background: var(--bg-cream);
+  padding-bottom: 60px;
+}
+
 /* Atmospheric warm light glow in background with subtle organic pulse */
 .visien-ambient-glow {
   position: fixed;
