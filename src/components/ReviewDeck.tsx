@@ -1,6 +1,18 @@
 import React, { useState } from 'react';
 import { AppBrief } from '@/lib/types';
-import { CheckCircle2, Edit3, ArrowRight, Sparkles, Send, ThumbsUp, ThumbsDown, Image as ImageIcon } from 'lucide-react';
+import { downloadBlueprintMarkdown } from '@/lib/blueprintExport';
+import {
+  CheckCircle2,
+  Edit3,
+  ArrowRight,
+  Sparkles,
+  Send,
+  ThumbsUp,
+  ThumbsDown,
+  Image as ImageIcon,
+  Download,
+  Printer,
+} from 'lucide-react';
 
 interface ReviewDeckProps {
   clientName: string;
@@ -219,7 +231,7 @@ export const ReviewDeck: React.FC<ReviewDeckProps> = ({
         )}
       </div>
 
-      {/* Confirmation Button */}
+      {/* Confirmation & Export Buttons */}
       <div className="action-row">
         <button
           type="button"
@@ -236,6 +248,27 @@ export const ReviewDeck: React.FC<ReviewDeckProps> = ({
             </>
           )}
         </button>
+
+        <div className="secondary-actions-row">
+          <button
+            type="button"
+            className="visien-btn-secondary export-btn"
+            onClick={() => downloadBlueprintMarkdown(brief, clientName)}
+            title="Download complete technical blueprint as Markdown"
+          >
+            <Download size={14} />
+            <span>Export Blueprint (.md)</span>
+          </button>
+          <button
+            type="button"
+            className="visien-btn-secondary print-btn"
+            onClick={() => window.print()}
+            title="Print or Save as PDF"
+          >
+            <Printer size={14} />
+            <span>Print / PDF</span>
+          </button>
+        </div>
       </div>
 
       <style jsx>{`
@@ -481,6 +514,25 @@ export const ReviewDeck: React.FC<ReviewDeckProps> = ({
           width: 100%;
           padding: 16px 24px;
           font-size: 16px;
+        }
+
+        .secondary-actions-row {
+          display: flex;
+          gap: 10px;
+          margin-top: 12px;
+          width: 100%;
+        }
+
+        .export-btn,
+        .print-btn {
+          flex: 1;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 11px 16px;
+          font-size: 13.5px;
+          font-weight: 500;
         }
       `}</style>
     </div>

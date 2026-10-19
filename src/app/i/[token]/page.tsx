@@ -381,7 +381,7 @@ export default function DiscoverySessionPage() {
   // Copy full transcript to clipboard
   const copyTranscript = useCallback(() => {
     const text = messages
-      .map((m) => `${m.role === 'enos' ? 'ENOS' : 'Client'}: ${m.content}`)
+      .map((m) => `${m.role === 'client' ? (session?.client_name || 'Client') : 'VISIEN (AI Guide)'}: ${m.content}`)
       .join('\n\n');
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);

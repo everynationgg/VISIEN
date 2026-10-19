@@ -3,7 +3,11 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const apiKey = process.env.GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey);
-const TRANSCRIPTION_MODELS = ['gemini-3.1-flash-lite', 'gemini-3-flash-preview', 'gemini-3.5-transcribe'];
+const TRANSCRIPTION_MODELS = [
+  'gemini-flash-lite-latest',
+  'gemini-2.5-flash',
+  'gemini-flash-latest',
+];
 
 export async function POST(request: NextRequest) {
   try {

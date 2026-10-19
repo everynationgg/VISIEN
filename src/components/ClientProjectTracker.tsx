@@ -22,7 +22,10 @@ import {
   ChevronRight,
   User,
   Building,
+  Download,
+  Printer,
 } from 'lucide-react';
+import { downloadBlueprintMarkdown } from '@/lib/blueprintExport';
 
 interface ClientProjectTrackerProps {
   session: Session;
@@ -477,6 +480,36 @@ export function ClientProjectTracker({
               <MessageSquare size={15} />
               <span>Full VISIEN Conversation ({messages.length})</span>
             </button>
+
+            {activeTab === 'brief' && brief && (
+              <div className="tab-actions-group">
+                <button
+                  type="button"
+                  className="tab-action-btn"
+                  onClick={() =>
+                    downloadBlueprintMarkdown(
+                      brief,
+                      session.client_name || 'Client',
+                      session.company || undefined,
+                      session.token
+                    )
+                  }
+                  title="Download complete technical blueprint as Markdown"
+                >
+                  <Download size={13} />
+                  <span>Download Spec (.md)</span>
+                </button>
+                <button
+                  type="button"
+                  className="tab-action-btn"
+                  onClick={() => window.print()}
+                  title="Print or Save as PDF"
+                >
+                  <Printer size={13} />
+                  <span>Print / PDF</span>
+                </button>
+              </div>
+            )}
 
             {activeTab === 'transcript' && (
               <button
@@ -1277,6 +1310,13 @@ export function ClientProjectTracker({
         .tab-btn.active {
           color: var(--violet-deep);
           border-bottom-color: var(--violet-primary);
+        }
+
+        .tab-actions-group {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 6px;
         }
 
         .tab-action-btn {

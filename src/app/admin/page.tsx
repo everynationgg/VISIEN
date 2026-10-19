@@ -21,12 +21,40 @@ import {
   AlertCircle,
   CheckCircle2,
   Cpu,
+  Lock,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'needs_info' | 'completed' | 'in_progress' | 'not_started'>('all');
+
+  // Admin Passcode Protection ('enen')
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [passcodeInput, setPasscodeInput] = useState<string>('');
+  const [passcodeError, setPasscodeError] = useState<string | null>(null);
+  const [passcode, setPasscode] = useState<string>('');
+
+  const handlePasscodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passcodeInput.trim() === 'enen') {
+      sessionStorage.setItem('visien_admin_key', 'enen');
+      setPasscode('enen');
+      setIsAuthenticated(true);
+      setPasscodeError(null);
+      fetchSessions('enen');
+    } else {
+      setPasscodeError('Incorrect admin access code. Please try again.');
+    }
+  };
+
+  const handleLock = () => {
+    sessionStorage.removeItem('visien_admin_key');
+    setPasscode('');
+    setIsAuthenticated(false);
+    setPasscodeInput('');
+  };
 
   // New Session Form State
   const [showNewModal, setShowNewModal] = useState(false);
@@ -93,7 +121,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch('/api/admin/sessions', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': passcode || 'enen' },
         body: JSON.stringify({ ids: selectedIds }),
       });
       const data = await res.json();
@@ -124,6 +152,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch(`/api/admin/sessions?id=${sessionToDelete.id}`, {
         method: 'DELETE',
+        headers: { 'x-admin-key': passcode || 'enen' },
       });
       const data = await res.json();
       if (!res.ok) {
@@ -146,10 +175,17 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const fetchSessions = async () => {
+  const fetchSessions = async (overridePasscode?: string) => {
+    const key = overridePasscode || passcode || 'enen';
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/sessions');
+      const res = await fetch('/api/admin/sessions', {
+        headers: { 'x-admin-key': key },
+      });
+      if (res.status === 401) {
+        handleLock();
+        return;
+      }
       const data = await res.json();
       setSessions(data.sessions || []);
     } catch (err) {
@@ -160,7 +196,14 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    fetchSessions();
+    const saved = typeof window !== 'undefined' ? sessionStorage.getItem('visien_admin_key') : null;
+    if (saved === 'enen') {
+      setPasscode('enen');
+      setIsAuthenticated(true);
+      fetchSessions('enen');
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const handleCreateSession = async (e: React.FormEvent) => {
@@ -169,7 +212,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch('/api/admin/sessions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': passcode || 'enen' },
         body: JSON.stringify({ clientName, company, email }),
       });
       const data = await res.json();
@@ -233,7 +276,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch('/api/admin/sessions', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': passcode || 'enen' },
         body: JSON.stringify({
           id: selectedSession.id,
           project_status: statusToSave,
@@ -408,6 +451,56 @@ export default function AdminDashboardPage() {
 
   const needsInfoCount = sessions.filter((s) => s.project_status === 'needs_info').length;
 
+  if (!isAuthenticated) {
+    return (
+      <div className="admin-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '24px' }}>
+        <div className="visien-card" style={{ maxWidth: '440px', width: '100%', padding: '40px 32px', textAlign: 'center', border: '1px solid rgba(139, 92, 246, 0.3)', boxShadow: '0 24px 60px rgba(0, 0, 0, 0.7), 0 0 50px rgba(139, 92, 246, 0.15)' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '18px', background: 'rgba(124, 58, 237, 0.18)', border: '1px solid rgba(124, 58, 237, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto', color: '#c084fc', boxShadow: '0 0 25px rgba(124, 58, 237, 0.3)' }}>
+            <Lock size={28} />
+          </div>
+          <div className="brand-badge" style={{ display: 'inline-flex', marginBottom: '12px' }}>
+            <Sparkles size={13} />
+            <span>Every Nation GG</span>
+          </div>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 700, margin: '0 0 8px 0', letterSpacing: '-0.02em', color: '#fff' }}>
+            VISIEN Admin Portal
+          </h2>
+          <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: '0 0 26px 0', lineHeight: 1.5 }}>
+            Restricted access. Enter your admin security code to manage client discovery sessions and technical blueprints.
+          </p>
+          <form onSubmit={handlePasscodeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <input
+              type="password"
+              placeholder="Enter admin code..."
+              value={passcodeInput}
+              onChange={(e) => {
+                setPasscodeInput(e.target.value);
+                setPasscodeError(null);
+              }}
+              autoFocus
+              className="token-input"
+              style={{ width: '100%', textAlign: 'center', letterSpacing: '0.25em', fontSize: '1.25rem', padding: '12px 16px' }}
+            />
+            {passcodeError && (
+              <div style={{ color: '#f87171', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                <AlertCircle size={14} />
+                <span>{passcodeError}</span>
+              </div>
+            )}
+            <button
+              type="submit"
+              className="visien-btn-primary"
+              style={{ width: '100%', justifyContent: 'center', padding: '13px 20px', marginTop: '4px' }}
+              disabled={!passcodeInput.trim()}
+            >
+              <span>Unlock Command Portal</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="admin-container">
       {/* Top Navbar */}
@@ -422,8 +515,18 @@ export default function AdminDashboardPage() {
         <div className="header-right">
           <button
             type="button"
+            className="visien-btn-secondary"
+            onClick={handleLock}
+            title="Lock Admin Portal"
+            style={{ gap: '6px' }}
+          >
+            <Lock size={15} />
+            <span>Lock</span>
+          </button>
+          <button
+            type="button"
             className="visien-btn-secondary refresh-btn"
-            onClick={fetchSessions}
+            onClick={() => fetchSessions()}
           >
             <RefreshCw size={15} />
             <span>Refresh</span>

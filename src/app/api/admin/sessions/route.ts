@@ -10,9 +10,25 @@ function generateSecureToken(): string {
   return `${str.slice(0, 3)}-${str.slice(3)}`;
 }
 
+const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || 'enen';
+
+function isAuthorized(request: NextRequest): boolean {
+  const headerKey = request.headers.get('x-admin-key');
+  if (headerKey === ADMIN_PASSCODE) return true;
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.replace(/^Bearer\s+/i, '') === ADMIN_PASSCODE) return true;
+  const url = new URL(request.url);
+  if (url.searchParams.get('admin_key') === ADMIN_PASSCODE) return true;
+  return false;
+}
+
 // GET /api/admin/sessions: Lists all client sessions and briefs
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    if (!isAuthorized(request)) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid admin key' }, { status: 401 });
+    }
+
     const supabase = getAdminSupabase();
 
     const { data: sessions, error } = await supabase
@@ -37,6 +53,10 @@ export async function GET() {
 // POST /api/admin/sessions: Creates a new private session
 export async function POST(request: NextRequest) {
   try {
+    if (!isAuthorized(request)) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid admin key' }, { status: 401 });
+    }
+
     const { clientName, company, email } = await request.json();
     const token = generateSecureToken();
     const supabase = getAdminSupabase();
@@ -72,6 +92,10 @@ export async function POST(request: NextRequest) {
 // DELETE /api/admin/sessions: Deletes one or multiple sessions and cascading records (messages, brief)
 export async function DELETE(request: NextRequest) {
   try {
+    if (!isAuthorized(request)) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid admin key' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const idParam = searchParams.get('id');
     const tokenParam = searchParams.get('token');
@@ -163,6 +187,10 @@ export async function DELETE(request: NextRequest) {
 // PATCH /api/admin/sessions: Updates session project progress status & notes
 export async function PATCH(request: NextRequest) {
   try {
+    if (!isAuthorized(request)) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid admin key' }, { status: 401 });
+    }
+
     const { id, project_status, project_status_note } = await request.json();
 
     if (!id) {
