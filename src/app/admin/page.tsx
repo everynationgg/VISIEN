@@ -404,10 +404,7 @@ export default function AdminDashboardPage() {
       `- **Hardware & Device Capabilities:** ${selectedBrief.hardware_capabilities || selectedBrief.raw_json?.hardware_capabilities || 'Not specified'}`,
       `- **Data & Brand Readiness:** ${selectedBrief.data_readiness || selectedBrief.raw_json?.data_readiness || 'Not specified'}`,
       `- **Target Budget / Investment:** ${selectedBrief.budget_range || selectedBrief.raw_json?.budget_range || 'Flexible'}`,
-      selectedBrief.concept_image_url
-        ? `\n## 9. AI Visual Concept & Moodboard\n- **Concept Image:** ${selectedBrief.concept_image_url}\n- **Client Feedback:** ${selectedBrief.concept_image_feedback === 'liked' ? 'Approved (Matches Client Vision)' : selectedBrief.concept_image_feedback === 'disliked' ? `Disliked: "${selectedBrief.concept_image_notes || 'Design adjustments requested'}"` : 'Pending Review'}\n`
-        : '',
-      selectedBrief.additional_notes ? `\n## 10. Additional Notes\n${selectedBrief.additional_notes}` : '',
+      selectedBrief.additional_notes ? `\n## 9. Additional Notes\n${selectedBrief.additional_notes}` : '',
     ].join('\n');
 
     navigator.clipboard.writeText(md);
@@ -1341,46 +1338,6 @@ export default function AdminDashboardPage() {
                       <p><strong>Data & Brand Readiness:</strong> {selectedBrief.data_readiness || selectedBrief.raw_json?.data_readiness || 'Not specified'}</p>
                       <p><strong>Target Investment / Budget:</strong> <span style={{ color: 'var(--violet-primary)', fontWeight: 600 }}>{selectedBrief.budget_range || selectedBrief.raw_json?.budget_range || 'Flexible'}</span></p>
                     </div>
-
-                    {selectedBrief.concept_image_url && (
-                      <div className="brief-block">
-                        <h4>AI Visual Concept & Moodboard</h4>
-                        <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginTop: '10px' }}>
-                          <a href={selectedBrief.concept_image_url} target="_blank" rel="noopener noreferrer">
-                            <img
-                              src={selectedBrief.concept_image_url}
-                              alt="AI Concept"
-                              style={{ width: '130px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.12)', border: '1px solid #E5E7EB' }}
-                            />
-                          </a>
-                          <div>
-                            <div style={{ marginBottom: '8px' }}>
-                              {selectedBrief.concept_image_feedback === 'liked' ? (
-                                <span style={{ background: '#DCFCE7', color: '#166534', padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 700 }}>
-                                  👍 Client Liked / Approved Vibe
-                                </span>
-                              ) : selectedBrief.concept_image_feedback === 'disliked' ? (
-                                <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 700 }}>
-                                  👎 Client Requested Adjustments
-                                </span>
-                              ) : (
-                                <span style={{ background: 'var(--violet-soft)', color: 'var(--violet-deep)', padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 700 }}>
-                                  🎨 Aesthetic Baseline
-                                </span>
-                              )}
-                            </div>
-                            {selectedBrief.concept_image_notes && (
-                              <p style={{ fontSize: '13px', color: 'var(--text-main)', margin: '0 0 6px' }}>
-                                <strong>Client Feedback:</strong> "{selectedBrief.concept_image_notes}"
-                              </p>
-                            )}
-                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                              Generated during discovery. Click image to view in full resolution.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {selectedBrief.additional_notes && (
                       <div className="brief-block">

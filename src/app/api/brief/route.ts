@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
-import { generateAppBriefFromTranscript, generateAppConceptImage } from '@/lib/gemini';
+import { generateAppBriefFromTranscript } from '@/lib/gemini';
 import { findSessionByTokenOrQuery } from '@/lib/sessionResolver';
 
-export const maxDuration = 60; // Allow ample time for Gemini synthesis & AI moodboard generation
+export const maxDuration = 60; // Allow ample time for Gemini synthesis
 
 export async function POST(request: NextRequest) {
   try {
-    const { token, feedbackNotes, conceptImageFeedback, conceptImageNotes } = await request.json();
+    const { token, feedbackNotes } = await request.json();
 
     if (!token) {
       return NextResponse.json({ error: 'Token is required' }, { status: 400 });
@@ -50,35 +50,6 @@ export async function POST(request: NextRequest) {
       messages
     );
 
-    // Check if existing brief has concept_image_url
-    const { data: existingBrief } = await supabase
-      .from('app_briefs')
-      .select('concept_image_url, concept_image_feedback, concept_image_notes')
-      .eq('session_id', session.id)
-      .maybeSingle();
-
-    let conceptImageUrl = existingBrief?.concept_image_url || null;
-    if (!conceptImageUrl) {
-      // Race against a 3.5s timeout so client gets their App Vision in ~3s instead of hanging on external image APIs
-      const imagePromise = generateAppConceptImage(session.id, briefData, supabase);
-      conceptImageUrl = await Promise.race([
-        imagePromise,
-        new Promise<string | null>((resolve) => setTimeout(() => resolve(null), 3500)),
-      ]);
-
-      // If it takes longer than 3.5s, let it finish and update in the background without blocking the client
-      if (!conceptImageUrl) {
-        imagePromise.then(async (bgUrl) => {
-          if (bgUrl) {
-            await supabase
-              .from('app_briefs')
-              .update({ concept_image_url: bgUrl })
-              .eq('session_id', session.id);
-          }
-        }).catch(() => {});
-      }
-    }
-
     // 4. Upsert into app_briefs table
     const briefRecord = {
       session_id: session.id,
@@ -114,9 +85,9 @@ export async function POST(request: NextRequest) {
       data_readiness: briefData.data_readiness || null,
       target_timeline: briefData.target_timeline || null,
       budget_range: briefData.budget_range || null,
-      concept_image_url: conceptImageUrl || null,
-      concept_image_feedback: conceptImageFeedback !== undefined ? conceptImageFeedback : (existingBrief?.concept_image_feedback || null),
-      concept_image_notes: conceptImageNotes !== undefined ? conceptImageNotes : (existingBrief?.concept_image_notes || null),
+      concept_image_url: null,
+      concept_image_feedback: null,
+      concept_image_notes: null,
       infrastructure_preference: briefData.infrastructure_preference || 'Unspecified',
       additional_notes: briefData.additional_notes || '',
       raw_json: briefData,

@@ -327,7 +327,6 @@ Extract into JSON matching this exact structure:
   "budget_range": "Target investment or budget range described for V1",
   "future_horizon": "Long-term vision as client described",
   "infrastructure_preference": "Client's infrastructure preference",
-  "concept_image_prompt": "A 30-word prompt describing a flat 2D mobile app UI interface screenshot. Focus on: layout, color palette, dark mode/glows, product/service cards, navigation. Strictly exclude hands, phones, 3D angles, and explicit vulgar words to avoid image filter blur.",
   "additional_notes": "Any other specific points mentioned"
 }
 `;
@@ -349,74 +348,5 @@ Extract into JSON matching this exact structure:
   // Strip possible markdown code fences
   const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
   return JSON.parse(cleaned);
-}
-
-/**
- * Generates an AI visual concept mockup image for the client's app vision
- * and uploads it to Supabase Storage ('brief-assets').
- * 100% serverless, zero credit consumption.
- */
-export async function generateAppConceptImage(
-  sessionId: string,
-  brief: Partial<AppBrief> & { concept_image_prompt?: string },
-  supabaseClient: any
-): Promise<string | null> {
-  try {
-    let promptText = brief.concept_image_prompt || '';
-    if (!promptText) {
-      const title = brief.project_title || 'Modern Mobile Application';
-      const visual = (brief.visual_direction || 'sleek dark mode with glowing accents')
-        .replace(/fuck\w*|booty|naked|sex|porn\w*|dick|pussy|penis/gi, 'luxury discreet boutique')
-        .slice(0, 120);
-      promptText = `flat 2D mobile app UI design screenshot, direct front-facing view, NO hands, NO physical phone, ${visual}, app interface for ${title}, clean UI cards, bottom navigation bar, Figma digital design`;
-    }
-
-    // Always enforce flat UI screen framing and remove phone-in-hand / mockup triggers
-    promptText = promptText
-      .replace(/mockup|presentation|held in hand|hand holding|device frame/gi, 'digital interface')
-      .trim();
-
-    if (!promptText.toLowerCase().includes('no hands')) {
-      promptText = `flat 2D mobile app UI design screenshot, direct front-facing view, NO hands, NO physical phone, ${promptText}`;
-    }
-
-    const encoded = encodeURIComponent(promptText.slice(0, 320));
-    const genUrl = `https://image.pollinations.ai/prompt/${encoded}?width=768&height=1344&nologo=true`;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-    const res = await fetch(genUrl, { signal: controller.signal });
-    clearTimeout(timeout);
-
-    if (!res.ok) {
-      console.warn('Concept image fetch returned status:', res.status);
-      return null;
-    }
-
-    const buffer = await res.arrayBuffer();
-    if (buffer.byteLength < 500) return null;
-
-    const fileName = `${sessionId}-concept-${Date.now()}.jpg`;
-    const { error: uploadError } = await supabaseClient.storage
-      .from('brief-assets')
-      .upload(fileName, Buffer.from(buffer), {
-        contentType: 'image/jpeg',
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.warn('Failed to upload concept image to Supabase:', uploadError);
-      return genUrl;
-    }
-
-    const { data: publicData } = supabaseClient.storage
-      .from('brief-assets')
-      .getPublicUrl(fileName);
-
-    return publicData?.publicUrl || genUrl;
-  } catch (err: any) {
-    console.warn('generateAppConceptImage non-critical error:', err?.message);
-    return null;
-  }
 }
 

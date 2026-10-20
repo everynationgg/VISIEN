@@ -56,7 +56,6 @@ export function generateBlueprintMarkdown(
     brief.anti_patterns && brief.anti_patterns.length > 0
       ? `- **Do NOT Want (Anti-patterns):** ${brief.anti_patterns.join(', ')}`
       : '',
-    brief.concept_image_url ? `- **Concept Moodboard:** [View Concept Image](${brief.concept_image_url})` : '',
     `\n---`,
     `\n## 6. Target Launch & Budget Scope`,
     brief.target_timeline ? `- **Target Timeline:** ${brief.target_timeline}` : '',

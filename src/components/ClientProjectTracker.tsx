@@ -604,40 +604,6 @@ export function ClientProjectTracker({
                       </p>
                     </div>
                   )}
-                  {brief.concept_image_url && (
-                    <div className="brief-field full-span tracker-concept-field">
-                      <label>AI Visual Concept & Moodboard</label>
-                      <div className="tracker-concept-card">
-                        <div className="tracker-concept-img-frame">
-                          <img
-                            src={brief.concept_image_url}
-                            alt="AI UI Concept Mockup"
-                            className="tracker-concept-img"
-                          />
-                        </div>
-                        <div className="tracker-concept-details">
-                          <div className="tracker-concept-status">
-                            {brief.concept_image_feedback === 'liked' ? (
-                              <span className="concept-verdict-tag verdict-liked">
-                                👍 Client Approved Vibe
-                              </span>
-                            ) : brief.concept_image_feedback === 'disliked' ? (
-                              <span className="concept-verdict-tag verdict-disliked">
-                                💬 Refinements Noted: {brief.concept_image_notes || 'Tweak requested'}
-                              </span>
-                            ) : (
-                              <span className="concept-verdict-tag verdict-neutral">
-                                🎨 Aesthetic Baseline
-                              </span>
-                            )}
-                          </div>
-                          <p className="tracker-concept-note">
-                            Every Nation GG UI/UX architects use this concept as an aesthetic baseline when crafting your custom Figma interface designs.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="empty-tab-state">

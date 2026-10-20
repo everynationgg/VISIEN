@@ -7,9 +7,6 @@ import {
   ArrowRight,
   Sparkles,
   Send,
-  ThumbsUp,
-  ThumbsDown,
-  Image as ImageIcon,
   Download,
   Printer,
 } from 'lucide-react';
@@ -17,7 +14,7 @@ import {
 interface ReviewDeckProps {
   clientName: string;
   brief: Partial<AppBrief>;
-  onConfirm: (notes?: string, conceptFeedback?: 'liked' | 'disliked', conceptNotes?: string) => Promise<void>;
+  onConfirm: (notes?: string) => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -29,16 +26,9 @@ export const ReviewDeck: React.FC<ReviewDeckProps> = ({
 }) => {
   const [correctionNote, setCorrectionNote] = useState('');
   const [showCorrectionInput, setShowCorrectionInput] = useState(false);
-  const [conceptFeedback, setConceptFeedback] = useState<'liked' | 'disliked' | null>(
-    (brief.concept_image_feedback as any) || null
-  );
-  const [conceptNote, setConceptNote] = useState(brief.concept_image_notes || '');
-  const [showConceptNoteInput, setShowConceptNoteInput] = useState(
-    brief.concept_image_feedback === 'disliked'
-  );
 
   const handleSubmit = async () => {
-    await onConfirm(correctionNote, conceptFeedback || undefined, conceptNote || undefined);
+    await onConfirm(correctionNote);
   };
 
   return (
@@ -141,69 +131,6 @@ export const ReviewDeck: React.FC<ReviewDeckProps> = ({
           )}
         </div>
 
-        {/* Card 6: AI Visual Concept Moodboard */}
-        {brief.concept_image_url && (
-          <div className="visien-card review-card concept-card">
-            <div className="concept-header">
-              <span className="concept-badge">
-                <Sparkles size={13} />
-                <span>AI Visual Concept & Moodboard</span>
-              </span>
-              <h3 className="card-section-title" style={{ marginTop: '8px' }}>First Screen Vibe Check</h3>
-              <p className="concept-subtext">
-                Generated from your aesthetic direction and core flow. Every Nation GG designers will use this as an aesthetic baseline for your custom Figma layouts.
-              </p>
-            </div>
-
-            <div className="concept-image-wrapper">
-              <img
-                src={brief.concept_image_url}
-                alt="App UI Concept"
-                className="concept-image"
-              />
-            </div>
-
-            <div className="concept-feedback-section">
-              <p className="feedback-prompt">Does this concept match the visual vibe you had in mind?</p>
-              <div className="feedback-btn-group">
-                <button
-                  type="button"
-                  className={`concept-feedback-btn ${conceptFeedback === 'liked' ? 'selected-like' : ''}`}
-                  onClick={() => {
-                    setConceptFeedback('liked');
-                    setShowConceptNoteInput(false);
-                  }}
-                >
-                  <ThumbsUp size={15} />
-                  <span>Yes, matches my vibe</span>
-                </button>
-                <button
-                  type="button"
-                  className={`concept-feedback-btn ${conceptFeedback === 'disliked' ? 'selected-dislike' : ''}`}
-                  onClick={() => {
-                    setConceptFeedback('disliked');
-                    setShowConceptNoteInput(true);
-                  }}
-                >
-                  <ThumbsDown size={15} />
-                  <span>Not quite what I imagined</span>
-                </button>
-              </div>
-
-              {showConceptNoteInput && (
-                <div className="concept-note-box">
-                  <input
-                    type="text"
-                    className="concept-note-field"
-                    placeholder="What should our design team adjust? (e.g. darker background, simpler layout)"
-                    value={conceptNote}
-                    onChange={(e) => setConceptNote(e.target.value)}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Clarification / Correction Prompt */}

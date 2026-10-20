@@ -149,14 +149,35 @@ export default function DiscoverySessionPage() {
         const loadedMessages = data.messages || [];
         const hasUnansweredQuestions = (data.session.current_question_index ?? 0) < CORE_QUESTIONS.length;
 
-        if (data.session.status === 'completed' && !hasUnansweredQuestions) {
+        if (data.session.status === 'completed' || !hasUnansweredQuestions) {
           if (data.brief) {
             setGeneratedBrief(data.brief);
             setIsCompleted(true);
           } else {
-            // Brief exists but wasn't fetched — trigger review
-            setIsReviewMode(false);
-            setIsCompleted(true);
+            // All questions answered, but brief was not yet synthesized — synthesize now
+            setIsGeneratingBrief(true);
+            setOrbState('thinking');
+            fetch('/api/brief', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: data.session.token || token }),
+            })
+              .then((r) => r.json())
+              .then((briefRes) => {
+                if (briefRes.brief) {
+                  setGeneratedBrief(briefRes.brief);
+                  setIsReviewMode(true);
+                } else {
+                  setIsCompleted(true);
+                }
+              })
+              .catch(() => {
+                setIsCompleted(true);
+              })
+              .finally(() => {
+                setIsGeneratingBrief(false);
+                setOrbState('idle');
+              });
           }
         } else if (data.session.client_name && data.session.consent_given) {
           setOnboardingStep('chat');
@@ -605,11 +626,7 @@ export default function DiscoverySessionPage() {
   };
 
   // Confirm Brief
-  const handleConfirmBrief = async (
-    notes?: string,
-    conceptFeedback?: 'liked' | 'disliked',
-    conceptNotes?: string
-  ) => {
+  const handleConfirmBrief = async (notes?: string) => {
     setIsSending(true);
     try {
       const res = await fetch('/api/brief', {
@@ -618,8 +635,6 @@ export default function DiscoverySessionPage() {
         body: JSON.stringify({
           token,
           feedbackNotes: notes,
-          conceptImageFeedback: conceptFeedback,
-          conceptImageNotes: conceptNotes,
         }),
       });
       if (res.status === 404) {

@@ -30,16 +30,13 @@ export async function GET(
       console.error('Error fetching messages:', messagesError);
     }
 
-    // 3. Fetch app brief if completed
-    let brief = null;
-    if (session.status === 'completed') {
-      const { data: briefData } = await supabase
-        .from('app_briefs')
-        .select('*')
-        .eq('session_id', session.id)
-        .single();
-      brief = briefData;
-    }
+    // 3. Fetch app brief if available
+    const { data: briefData } = await supabase
+      .from('app_briefs')
+      .select('*')
+      .eq('session_id', session.id)
+      .maybeSingle();
+    const brief = briefData || null;
 
     return NextResponse.json({
       session,
