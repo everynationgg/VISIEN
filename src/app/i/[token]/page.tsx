@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { EnosOrb, OrbState } from '@/components/EnosOrb';
 import { ChapterProgress } from '@/components/ChapterProgress';
 import { SuggestionChips } from '@/components/SuggestionChips';
+import { ColorWheelPicker } from '@/components/ColorWheelPicker';
 import { ReviewDeck } from '@/components/ReviewDeck';
 import { ClientProjectTracker } from '@/components/ClientProjectTracker';
 import { CORE_QUESTIONS } from '@/lib/questions';
@@ -102,6 +103,10 @@ export default function DiscoverySessionPage() {
   const [onboardingStep, setOnboardingStep] = useState<'name' | 'consent' | 'chat'>('name');
   const [nameInput, setNameInput] = useState('');
 
+  // Interactive widgets state
+  const [pegUrlInput, setPegUrlInput] = useState('');
+  const [showColorWheel, setShowColorWheel] = useState(true);
+
   // Transcript copy
   const [copied, setCopied] = useState(false);
 
@@ -123,6 +128,11 @@ export default function DiscoverySessionPage() {
       inputRef.current?.focus();
     }
   }, [onboardingStep, isSending, isGeneratingBrief]);
+
+  useEffect(() => {
+    setShowColorWheel(true);
+    setPegUrlInput('');
+  }, [session?.current_question_index]);
 
   // Load Session
   useEffect(() => {
@@ -1038,12 +1048,57 @@ export default function DiscoverySessionPage() {
       </main>
 
       <footer className="chat-footer">
-        {currentQ?.chips && !isSending && (
-          <SuggestionChips
-            chips={currentQ.chips}
-            onSelectChip={(chip) => handleSendMessage(chip)}
-            disabled={isSending}
+        {currentQ?.id === 'color_scheme_and_vibe' && showColorWheel && !isSending ? (
+          <ColorWheelPicker
+            onSelectPalette={(paletteText) => {
+              handleSendMessage(paletteText);
+            }}
+            onCancel={() => setShowColorWheel(false)}
           />
+        ) : (
+          <>
+            {currentQ?.id === 'visual_peg_and_timeline' && !isSending && (
+              <div className="peg-input-container">
+                <div className="peg-input-bar">
+                  <span className="peg-label">🔗 Peg Link:</span>
+                  <input
+                    type="url"
+                    className="peg-url-input"
+                    placeholder="Paste link to design peg (Dribbble, Figma, Instagram, website)..."
+                    value={pegUrlInput}
+                    onChange={(e) => setPegUrlInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && pegUrlInput.trim()) {
+                        e.preventDefault();
+                        handleSendMessage(`Design Peg Reference: ${pegUrlInput.trim()}`);
+                        setPegUrlInput('');
+                      }
+                    }}
+                  />
+                  {pegUrlInput.trim() && (
+                    <button
+                      type="button"
+                      className="peg-submit-btn"
+                      onClick={() => {
+                        handleSendMessage(`Design Peg Reference: ${pegUrlInput.trim()}`);
+                        setPegUrlInput('');
+                      }}
+                    >
+                      Attach Peg
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {currentQ?.chips && !isSending && (
+              <SuggestionChips
+                chips={currentQ.chips}
+                onSelectChip={(chip) => handleSendMessage(chip)}
+                disabled={isSending}
+              />
+            )}
+          </>
         )}
 
         <div className="input-bar">
