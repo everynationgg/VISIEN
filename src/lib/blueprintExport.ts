@@ -90,3 +90,50 @@ export function downloadBlueprintMarkdown(
   anchor.click();
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Formats a ready-to-paste AI Builder Prompt for Cursor, Claude, Antigravity, or Copilot.
+ */
+export function generateBuilderPrompt(
+  brief: Partial<AppBrief>,
+  clientName: string,
+  company?: string
+): string {
+  const lines = [
+    `You are an elite Full-Stack Software Engineer and UI/UX Architect at Every Nation GG.`,
+    `Build an end-to-end, production-ready, interactive application prototype based on the verified VISIEN technical discovery specifications below.\n`,
+    `### APPLICATION IDENTITY`,
+    `- Project Title: ${brief.project_title || 'Application Prototype'}`,
+    `- Client: ${clientName}${company ? ` (${company})` : ''}`,
+    `- Vision Summary: ${brief.vision_summary || 'N/A'}`,
+    `- Core Problem Solved: ${brief.problem_statement || 'N/A'}\n`,
+    `### TARGET USERS & CORE FLOW`,
+    `- Target Users: ${brief.target_users || 'General Users'}`,
+    `- First Screen Experience: ${brief.first_screen_experience || 'Clean landing view with instant call to action'}`,
+    `- Primary User Flow: ${brief.core_action || 'Browse -> Select -> Submit'}`,
+    `- Expected Outcome: ${brief.expected_outcome || 'Immediate confirmation & database record creation'}\n`,
+    `### TECHNICAL ARCHITECTURE & STACK`,
+    `- Target Platform: ${brief.target_platform || 'Responsive Web App / PWA'}`,
+    `- Authentication: ${brief.auth_requirements || 'Guest access + Social OAuth'}`,
+    `- Payments & Integrations: ${brief.payments_integrations || 'None'}`,
+    `- Notifications: ${brief.notifications_channels || 'None'}`,
+    `- Hardware/APIs: ${brief.hardware_capabilities || 'None'}`,
+    `- Database & Backend: PostgreSQL / Supabase, ${brief.infrastructure_preference || 'ENGG Managed'}\n`,
+    `### VISUAL DIRECTION & DESIGN SYSTEM`,
+    `- Aesthetic Style: ${brief.visual_direction || 'Modern, clean, polished'}`,
+    `- Emotional Feel: ${brief.emotional_ux_feel?.join(', ') || 'Premium, intuitive'}`,
+    brief.anti_patterns && brief.anti_patterns.length > 0 ? `- Anti-Patterns (Avoid): ${brief.anti_patterns.join(', ')}` : '',
+    `\n### V1 ESSENTIAL FEATURE SCOPE`,
+    brief.v1_essential_features && brief.v1_essential_features.length > 0
+      ? brief.v1_essential_features.map((f, i) => `${i + 1}. ${f}`).join('\n')
+      : '1. Core functional flow\n2. Admin view for records',
+    `\n### IMPLEMENTATION DIRECTIVES`,
+    `1. Implement the complete primary user flow from first tap to finish with smooth micro-interactions.`,
+    `2. Apply the specified visual direction with cohesive color tokens, dark/light contrast, and elegant typography.`,
+    `3. Ensure fully typed TypeScript interfaces and clean component boundaries.`,
+    `4. Write real, working frontend and API code — no placeholder 'TODOs' in core user actions.`
+  ];
+
+  return lines.filter(Boolean).join('\n');
+}
+

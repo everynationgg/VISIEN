@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Session, AppBrief, Message, ProjectProgressStatus } from '@/lib/types';
+import { generateBuilderPrompt } from '@/lib/blueprintExport';
 import {
   Sparkles,
   Plus,
@@ -30,22 +31,40 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'needs_info' | 'completed' | 'in_progress' | 'not_started'>('all');
 
-  // Admin Passcode Protection ('enen')
+  // Admin Passcode Protection (Server-Verified)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [passcodeInput, setPasscodeInput] = useState<string>('');
   const [passcodeError, setPasscodeError] = useState<string | null>(null);
   const [passcode, setPasscode] = useState<string>('');
+  const [isVerifyingPasscode, setIsVerifyingPasscode] = useState<boolean>(false);
 
-  const handlePasscodeSubmit = (e: React.FormEvent) => {
+  const handlePasscodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passcodeInput.trim() === 'enen') {
-      sessionStorage.setItem('visien_admin_key', 'enen');
-      setPasscode('enen');
-      setIsAuthenticated(true);
-      setPasscodeError(null);
-      fetchSessions('enen');
-    } else {
-      setPasscodeError('Incorrect admin access code. Please try again.');
+    const candidate = passcodeInput.trim();
+    if (!candidate) return;
+
+    setIsVerifyingPasscode(true);
+    setPasscodeError(null);
+
+    try {
+      const res = await fetch('/api/admin/sessions', {
+        headers: { 'x-admin-key': candidate },
+      });
+
+      if (res.ok) {
+        sessionStorage.setItem('visien_admin_key', candidate);
+        setPasscode(candidate);
+        setIsAuthenticated(true);
+        const data = await res.json();
+        setSessions(data.sessions || []);
+      } else {
+        setPasscodeError('Incorrect admin access code. Please try again.');
+      }
+    } catch (err) {
+      console.error('Admin authentication error:', err);
+      setPasscodeError('Failed to verify access code. Please check your network connection.');
+    } finally {
+      setIsVerifyingPasscode(false);
     }
   };
 
@@ -75,6 +94,7 @@ export default function AdminDashboardPage() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [copiedTranscript, setCopiedTranscript] = useState(false);
   const [copiedBrief, setCopiedBrief] = useState(false);
+  const [copiedBuilderPrompt, setCopiedBuilderPrompt] = useState(false);
   const [isGeneratingBrief, setIsGeneratingBrief] = useState(false);
 
   // Project Progress Pipeline Control State
@@ -121,7 +141,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch('/api/admin/sessions', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': passcode || 'enen' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': passcode },
         body: JSON.stringify({ ids: selectedIds }),
       });
       const data = await res.json();
@@ -152,7 +172,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch(`/api/admin/sessions?id=${sessionToDelete.id}`, {
         method: 'DELETE',
-        headers: { 'x-admin-key': passcode || 'enen' },
+        headers: { 'x-admin-key': passcode },
       });
       const data = await res.json();
       if (!res.ok) {
@@ -176,7 +196,11 @@ export default function AdminDashboardPage() {
   };
 
   const fetchSessions = async (overridePasscode?: string) => {
-    const key = overridePasscode || passcode || 'enen';
+    const key = overridePasscode || passcode;
+    if (!key) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch('/api/admin/sessions', {
@@ -184,6 +208,7 @@ export default function AdminDashboardPage() {
       });
       if (res.status === 401) {
         handleLock();
+        setPasscodeError('Admin access expired or code changed. Please re-enter.');
         return;
       }
       const data = await res.json();
@@ -197,10 +222,10 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? sessionStorage.getItem('visien_admin_key') : null;
-    if (saved === 'enen') {
-      setPasscode('enen');
+    if (saved) {
+      setPasscode(saved);
       setIsAuthenticated(true);
-      fetchSessions('enen');
+      fetchSessions(saved);
     } else {
       setLoading(false);
     }
@@ -212,7 +237,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch('/api/admin/sessions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': passcode || 'enen' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': passcode },
         body: JSON.stringify({ clientName, company, email }),
       });
       const data = await res.json();
@@ -276,7 +301,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch('/api/admin/sessions', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': passcode || 'enen' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': passcode },
         body: JSON.stringify({
           id: selectedSession.id,
           project_status: statusToSave,
@@ -349,6 +374,16 @@ export default function AdminDashboardPage() {
     navigator.clipboard.writeText(`${header}\n${body}`);
     setCopiedTranscript(true);
     setTimeout(() => setCopiedTranscript(false), 2200);
+  };
+
+  const copyBuilderPrompt = () => {
+    if (!selectedBrief) return;
+    const client = selectedBrief.client_name || selectedSession?.client_name || 'Client';
+    const comp = selectedBrief.company || selectedSession?.company || undefined;
+    const prompt = generateBuilderPrompt(selectedBrief, client, comp);
+    navigator.clipboard.writeText(prompt);
+    setCopiedBuilderPrompt(true);
+    setTimeout(() => setCopiedBuilderPrompt(false), 2200);
   };
 
   const copyBriefAsMarkdown = () => {
@@ -488,9 +523,9 @@ export default function AdminDashboardPage() {
               type="submit"
               className="visien-btn-primary"
               style={{ width: '100%', justifyContent: 'center', padding: '13px 20px', marginTop: '4px' }}
-              disabled={!passcodeInput.trim()}
+              disabled={!passcodeInput.trim() || isVerifyingPasscode}
             >
-              <span>Unlock Command Portal</span>
+              <span>{isVerifyingPasscode ? 'Verifying...' : 'Unlock Command Portal'}</span>
             </button>
           </form>
         </div>
@@ -1236,15 +1271,26 @@ export default function AdminDashboardPage() {
                   <span>{copiedTranscript ? 'Copied!' : 'Copy Transcript'}</span>
                 </button>
               ) : selectedBrief ? (
-                <button
-                  type="button"
-                  className="drawer-copy-action-btn"
-                  onClick={copyBriefAsMarkdown}
-                  title="Copy brief as Markdown"
-                >
-                  {copiedBrief ? <Check size={14} color="#16A34A" /> : <Copy size={14} />}
-                  <span>{copiedBrief ? 'Copied!' : 'Copy Brief'}</span>
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="drawer-copy-action-btn"
+                    onClick={copyBuilderPrompt}
+                    title="Copy AI Builder Prompt for Cursor / Claude / Antigravity"
+                  >
+                    {copiedBuilderPrompt ? <Check size={14} color="#16A34A" /> : <Sparkles size={14} />}
+                    <span>{copiedBuilderPrompt ? 'Copied Prompt!' : 'Builder Prompt'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="drawer-copy-action-btn"
+                    onClick={copyBriefAsMarkdown}
+                    title="Copy brief as Markdown"
+                  >
+                    {copiedBrief ? <Check size={14} color="#16A34A" /> : <Copy size={14} />}
+                    <span>{copiedBrief ? 'Copied!' : 'Copy Brief'}</span>
+                  </button>
+                </div>
               ) : null}
             </div>
 
@@ -1263,15 +1309,26 @@ export default function AdminDashboardPage() {
                           {selectedBrief.project_title || 'Untitled Application'}
                         </h3>
                       </div>
-                      <button
-                        type="button"
-                        className="visien-btn-secondary copy-brief-btn"
-                        onClick={copyBriefAsMarkdown}
-                        title="Copy full brief formatted as Markdown"
-                      >
-                        {copiedBrief ? <Check size={14} color="#16A34A" /> : <Copy size={14} />}
-                        <span>{copiedBrief ? 'Copied!' : 'Copy as Markdown'}</span>
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="visien-btn-secondary copy-brief-btn"
+                          onClick={copyBuilderPrompt}
+                          title="Copy ready-to-paste AI Prompt for Cursor / Claude / Antigravity"
+                        >
+                          {copiedBuilderPrompt ? <Check size={14} color="#16A34A" /> : <Sparkles size={14} />}
+                          <span>{copiedBuilderPrompt ? 'Copied Prompt!' : 'Copy Builder Prompt'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="visien-btn-secondary copy-brief-btn"
+                          onClick={copyBriefAsMarkdown}
+                          title="Copy full brief formatted as Markdown"
+                        >
+                          {copiedBrief ? <Check size={14} color="#16A34A" /> : <Copy size={14} />}
+                          <span>{copiedBrief ? 'Copied!' : 'Copy as Markdown'}</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="brief-block">
