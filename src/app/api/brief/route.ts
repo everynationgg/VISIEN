@@ -29,18 +29,16 @@ export async function POST(request: NextRequest) {
       .eq('session_id', session.id)
       .maybeSingle();
 
-    // If brief already exists and client is confirming without any feedback notes, skip re-synthesis!
-    if (existingBrief && !feedbackNotes?.trim()) {
-      if (finalize) {
-        await supabase
-          .from('sessions')
-          .update({
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', session.id);
-      }
+    // If brief already exists and client is finalizing without any feedback notes, skip re-synthesis!
+    if (finalize && existingBrief && !feedbackNotes?.trim()) {
+      await supabase
+        .from('sessions')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', session.id);
       return NextResponse.json({ brief: existingBrief });
     }
 

@@ -231,7 +231,7 @@ export default function DiscoverySessionPage() {
     const checkSessionLiveness = async () => {
       try {
         const lookupToken = session?.token || token;
-        const res = await fetch(`/api/session/${lookupToken}`, { method: 'GET' });
+        const res = await fetch(`/api/session/${lookupToken}?liveness=1`, { method: 'GET' });
         if (res.status === 404) {
           setIsSessionNotFound(true);
         }
@@ -253,7 +253,7 @@ export default function DiscoverySessionPage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(interval);
     };
-  }, [token, isCompleted, hasExited, isSessionNotFound]);
+  }, [token, isCompleted, hasExited, isSessionNotFound, session?.token]);
 
   // Cleanup voice recognition & audio stream on unmount
   useEffect(() => {
@@ -465,8 +465,11 @@ export default function DiscoverySessionPage() {
       setSession(data.session);
       setOnboardingStep('chat');
 
-      if (messages.length === 0) {
-        // Fetch freshly seeded initial greeting from database
+      if (data.messages && data.messages.length > 0) {
+        setMessages(data.messages);
+        setNewestEnosId(data.messages[data.messages.length - 1].id);
+      } else if (messages.length === 0) {
+        // Fallback: fetch freshly seeded initial greeting from database if not in PATCH response
         const freshRes = await fetch(`/api/session/${targetToken}`);
         if (freshRes.ok) {
           const freshData = await freshRes.json();

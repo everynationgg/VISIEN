@@ -27,42 +27,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Session is already completed' }, { status: 400 });
     }
 
-    // 2. Fetch conversation history for context (ENOS needs to remember what was said)
-    const { data: allMessages } = await supabase
-      .from('messages')
-      .select('role, content')
-      .eq('session_id', session.id)
-      .order('created_at', { ascending: true });
+    // 2. Determine current question key
+    const currentQ = CORE_QUESTIONS[session.current_question_index];
+    const currentQuestionKey = questionId || currentQ?.id || 'question';
 
-    const conversationHistory = (allMessages || []).map(m => ({
+    // 3. Concurrently fetch conversation history and insert client message
+    const [messagesResult] = await Promise.all([
+      supabase
+        .from('messages')
+        .select('role, content, question_id, is_follow_up')
+        .eq('session_id', session.id)
+        .order('created_at', { ascending: true }),
+      supabase.from('messages').insert({
+        session_id: session.id,
+        role: 'client',
+        content: message.trim(),
+        question_id: currentQuestionKey,
+        is_follow_up: false,
+      }),
+    ]);
+
+    const allMessages = messagesResult.data || [];
+    const conversationHistory = allMessages.map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
-    // 3. Count existing follow-ups for the current question
-    const currentQ = CORE_QUESTIONS[session.current_question_index];
-    const currentQuestionKey = questionId || currentQ?.id || 'question';
+    // In-memory follow-up calculation for the current question
+    const followUpCount = allMessages.filter(
+      (m) => m.question_id === currentQuestionKey && m.is_follow_up && m.role === 'enos'
+    ).length;
 
-    const { data: previousFollowUps } = await supabase
-      .from('messages')
-      .select('id')
-      .eq('session_id', session.id)
-      .eq('question_id', currentQuestionKey)
-      .eq('is_follow_up', true)
-      .eq('role', 'enos');
-
-    const followUpCount = previousFollowUps?.length || 0;
-
-    // 4. Save Client Message
-    await supabase.from('messages').insert({
-      session_id: session.id,
-      role: 'client',
-      content: message.trim(),
-      question_id: currentQuestionKey,
-      is_follow_up: false,
-    });
-
-    // 5. Generate AI Turn from ENOS (with full conversation history for context)
+    // 4. Generate AI Turn from ENOS (with full conversation history for context)
     const aiResponse = await generateEnosResponse({
       clientName: session.client_name || 'there',
       currentQuestionIndex: session.current_question_index,
@@ -71,30 +67,30 @@ export async function POST(request: NextRequest) {
       latestClientAnswer: message.trim(),
     });
 
-    // 6. Save ENOS Message
-    await supabase.from('messages').insert({
-      session_id: session.id,
-      role: 'enos',
-      content: aiResponse.message,
-      question_id: currentQuestionKey,
-      is_follow_up: aiResponse.isFollowUp,
-    });
-
-    // 7. Update Session State & Chapter
     const nextIndex = aiResponse.nextQuestionIndex;
     const nextQ = CORE_QUESTIONS[nextIndex];
     const newChapter = nextQ ? nextQ.chapter : 4;
     const isFinished = nextIndex >= CORE_QUESTIONS.length || !!aiResponse.isFinished;
 
-    await supabase
-      .from('sessions')
-      .update({
-        current_question_index: nextIndex,
-        current_chapter: newChapter,
-        status: isFinished ? 'completed' : 'in_progress',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', session.id);
+    // 5. Concurrently save ENOS message and update session state
+    await Promise.all([
+      supabase.from('messages').insert({
+        session_id: session.id,
+        role: 'enos',
+        content: aiResponse.message,
+        question_id: currentQuestionKey,
+        is_follow_up: aiResponse.isFollowUp,
+      }),
+      supabase
+        .from('sessions')
+        .update({
+          current_question_index: nextIndex,
+          current_chapter: newChapter,
+          status: isFinished ? 'completed' : 'in_progress',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', session.id),
+    ]);
 
     return NextResponse.json({
       reply: aiResponse.message,

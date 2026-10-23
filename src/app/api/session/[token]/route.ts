@@ -20,18 +20,30 @@ export async function GET(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    // 2. Fetch conversation messages
-    const { data: messages, error: messagesError } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('session_id', session.id)
-      .order('created_at', { ascending: true });
-
-    if (messagesError) {
-      console.error('Error fetching messages:', messagesError);
+    const isLivenessOnly = request.nextUrl.searchParams.get('liveness') === '1';
+    if (isLivenessOnly) {
+      return NextResponse.json({ alive: true, status: session.status });
     }
 
-    let sessionMessages = messages || [];
+    // Parallelize GET: Fetch conversation messages and app brief concurrently
+    const [messagesRes, briefRes] = await Promise.all([
+      supabase
+        .from('messages')
+        .select('*')
+        .eq('session_id', session.id)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('app_briefs')
+        .select('*')
+        .eq('session_id', session.id)
+        .maybeSingle(),
+    ]);
+
+    if (messagesRes.error) {
+      console.error('Error fetching messages:', messagesRes.error);
+    }
+
+    let sessionMessages = messagesRes.data || [];
 
     // Automatically seed initial greeting if session is started but transcript has no records yet
     if (sessionMessages.length === 0 && session.status !== 'not_started') {
@@ -56,13 +68,7 @@ export async function GET(
       }
     }
 
-    // 3. Fetch app brief if available
-    const { data: briefData } = await supabase
-      .from('app_briefs')
-      .select('*')
-      .eq('session_id', session.id)
-      .maybeSingle();
-    const brief = briefData || null;
+    const brief = briefRes.data || null;
 
     return NextResponse.json({
       session,
@@ -89,13 +95,8 @@ export async function PATCH(
 
     const allowedUpdates = [
       'client_name',
-      'company',
-      'email',
-      'status',
       'consent_given',
-      'current_question_index',
-      'current_chapter',
-      'completed_at',
+      'status',
       'client_clarification_reply',
     ];
 
@@ -130,7 +131,45 @@ export async function PATCH(
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ session: updatedSession });
+    let sessionMessages: any[] | undefined = undefined;
+
+    // Seed greeting when consent is given if not already seeded
+    if (body.consent_given === true) {
+      const { data: existingMessages } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('session_id', existingSession.id)
+        .order('created_at', { ascending: true });
+
+      sessionMessages = existingMessages || [];
+
+      if (sessionMessages.length === 0) {
+        const firstQ = CORE_QUESTIONS[0];
+        const clientName = updatedSession.client_name || existingSession.client_name || 'there';
+        const greeting = `Hi ${clientName}! I'm VISIEN, your AI guide from Every Nation GG.\n\nI'll help you shape your app idea into a ready-to-build blueprint — no technical background needed.\n\nLet's start here: ${firstQ.title}`;
+
+        const { data: seededMsg } = await supabase
+          .from('messages')
+          .insert({
+            session_id: existingSession.id,
+            role: 'enos',
+            content: greeting,
+            question_id: firstQ.id,
+            is_follow_up: false,
+          })
+          .select()
+          .single();
+
+        if (seededMsg) {
+          sessionMessages = [seededMsg];
+        }
+      }
+    }
+
+    return NextResponse.json({
+      session: updatedSession,
+      ...(sessionMessages !== undefined ? { messages: sessionMessages } : {}),
+    });
   } catch (error: any) {
     console.error('Session update error:', error);
     return NextResponse.json(
