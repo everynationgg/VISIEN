@@ -1,10 +1,10 @@
 import { QuestionDefinition } from './types';
 
 export const CHAPTERS = [
-  { id: 1, title: 'Concept & Data Model', subtitle: 'App archetype, items & intake fields' },
-  { id: 2, title: 'User Flow & Back-Office', subtitle: 'Step-by-step journey & admin controls' },
+  { id: 1, title: 'Concept & Data Model', subtitle: 'App archetype, content & intake fields' },
+  { id: 2, title: 'User Flow & Back-Office', subtitle: 'Step-by-step flow & admin controls' },
   { id: 3, title: 'Visuals & Palette', subtitle: 'Dark/light mode, color wheel & theme' },
-  { id: 4, title: 'Access & Launch', subtitle: 'Auth, alerts, payments & design peg' },
+  { id: 4, title: 'Access & Launch', subtitle: 'Platform, auth, alerts, payments & design peg' },
 ] as const;
 
 export const CORE_QUESTIONS: QuestionDefinition[] = [
@@ -29,14 +29,14 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     chapter: 1,
     chapterTitle: 'Concept & Data Model',
     number: 2,
-    title: 'What specific records, services, or items are being created and displayed?',
-    guidance: 'This helps our developers design your database tables and data models right from day one.',
+    title: 'What core information, data, or content will the app display or manage?',
+    guidance: 'Tell us what data lives in the app — or let us know if this is a utility/tool that does not need to store database records.',
     chips: [
+      'No saved database records (Pure utility, calculator, or static showcase tool)',
       'Services & Time Slots (Duration, pricing, staff assignment, available hours)',
       'Product Items & Variants (Photos, descriptions, categories, stock levels)',
-      'Daily Personal Logs & Metrics (Timestamps, categories, ratings, notes)',
-      'Client Profiles & Inquiries (Contact info, custom answers, attached files, status flags)',
-      'Fresh blank slate — I will create custom entries directly inside the app'
+      'Client Inquiries & Intake Submissions (Contact info, custom answers, attached files)',
+      'Daily Personal Logs & Metrics (Timestamps, categories, ratings, notes)'
     ]
   },
   {
@@ -60,12 +60,12 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     chapter: 2,
     chapterTitle: 'User Flow & Back-Office',
     number: 4,
-    title: 'What is the primary user journey from first tap to finish?',
-    guidance: 'Walk me through the main path — from opening the app to completing the core action.',
+    title: 'What is the primary user flow from first tap to finish?',
+    guidance: 'Walk me through the main user flow — from opening the app to completing the core action.',
     chips: [
       'Browse services → Pick date/time slot → Fill intake details → Instant confirmation',
       'Browse catalog → Add to cart → Checkout / Order slip generated',
-      'Open app → Tap (+) button → Quick log entry → Personal charts update',
+      'Open app → Tap (+) button → Quick entry flow → Personal charts update',
       'Explore community/directory → View detail profile → Connect, chat, or RSVP'
     ]
   },
@@ -74,13 +74,13 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     chapter: 2,
     chapterTitle: 'User Flow & Back-Office',
     number: 5,
-    title: 'How will the creator or business owner manage this behind the scenes?',
-    guidance: 'Tell us how you or your team will oversee records, accept submissions, or update content.',
+    title: 'Do you need an admin dashboard or management panel to manage the app?',
+    guidance: 'Tell us if you or your team need an admin interface to manage content, view submissions, and control settings, or if the app is self-contained.',
     chips: [
-      'Dedicated Mobile/Desktop Admin Portal (View calendar, accept/reschedule bookings, export CSV)',
-      'Content & Catalog Manager (Add/edit services, update prices, manage availability directly in-app)',
-      'Alerts Only — No Admin Panel Needed (Send details straight to Google Calendar & Email)',
-      'Private to Me (Personal single-user tool — no admin or client separation needed)'
+      'Yes — Dedicated Web Admin Dashboard (View calendar, accept/reschedule bookings, export CSV)',
+      'Yes — In-App Admin Mode (Switch to admin mode directly on mobile to update listings & prices)',
+      'No Admin Dashboard Needed (Send submissions directly to Email, WhatsApp, or Google Calendar)',
+      'No — Single-user private tool (No admin or client separation needed)'
     ]
   },
 
@@ -116,38 +116,70 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
 
   // Chapter 4: Access & Launch
   {
-    id: 'access_and_auth',
+    id: 'target_platform',
     chapter: 4,
     chapterTitle: 'Access & Launch',
     number: 8,
-    title: 'Who should have access to this app, and how should people get in?',
-    guidance: 'Think about whether this is private for you and invited users, or open to the public — and how people verify their identity.',
+    title: 'What devices and platforms should this app support at launch?',
+    guidance: 'This helps developers choose between a responsive web app (PWA) or native mobile apps published to the Apple App Store and Google Play.',
     chips: [
-      '1-Tap Social Login (Google & Apple ID — fastest frictionless access)',
-      'Instant Guest Access (No sign-up or password required — jump straight in)',
-      'Private Invite / Passcode (Locked to me and people with an access passcode)',
-      'Standard Email & Password (Account profile with saved history)'
+      'Responsive Web App / PWA (Runs smoothly on any phone, tablet, and desktop browser)',
+      'Native Mobile Apps (Published to Apple App Store & Google Play Store)',
+      'Both Responsive Web + Native Mobile Apps (Unified cross-platform build)',
+      'Tablet / Desktop First (Optimized for iPad kiosks, cashiers, or office workstations)'
+    ]
+  },
+  {
+    id: 'access_and_auth',
+    chapter: 4,
+    chapterTitle: 'Access & Launch',
+    number: 9,
+    title: 'Do users need to create an account or sign in to use the app, and who is allowed access?',
+    guidance: 'Tell us whether the app should be open to the public without login, require an account (Google, Apple, Email), or be restricted to private invitees.',
+    chips: [
+      'Instant Guest Access (No sign-up or password required — open to anyone)',
+      '1-Tap Social Sign-In (Google & Apple ID — fast, frictionless access)',
+      'Standard Email & Password / OTP (User profile with saved history and preferences)',
+      'Private & Invite-Only (Locked to specific team members or users with an access code)',
+      'Multi-Role Access (Different access levels for Customers, Staff, and Admins)'
+    ]
+  },
+  {
+    id: 'integrations_and_hardware',
+    chapter: 4,
+    chapterTitle: 'Access & Launch',
+    number: 10,
+    title: 'Does the app need to connect with external tools, APIs, or device features?',
+    guidance: 'Specify any third-party services (like Google Maps, WhatsApp, Google Sheets, or CRM) or device hardware (Camera/QR, GPS, Bluetooth printer) developers should integrate.',
+    chips: [
+      'Maps & Location (Google Maps, GPS routing, address autocomplete)',
+      'Camera & QR Scanner (Barcode scanning, photo proof upload, QR check-in)',
+      'Spreadsheet & File Sync (Sync data with Google Sheets, Airtable, or CSV export)',
+      'Chat & Messaging API (WhatsApp, Telegram, or SMS gateway)',
+      'No External Integrations (Self-contained app with no third-party APIs)'
     ]
   },
   {
     id: 'notifications_and_alerts',
     chapter: 4,
     chapterTitle: 'Access & Launch',
-    number: 9,
-    title: 'When an action happens, what notifications or alerts should trigger?',
-    guidance: 'Think about whether you need automated calendar bookings, instant push alerts, or zero interruptions.',
+    number: 11,
+    title: 'What specific notifications should trigger, and when should they send?',
+    guidance: 'Select the triggers that fit your workflow — like instant booking confirmations, reminder alerts before scheduled events, owner submission alerts, or daily summaries.',
     chips: [
-      'Calendar Sync + Instant Confirmation (Auto-adds to Google Calendar + Email/SMS)',
-      'Daily Push Notification Reminders (Customizable morning/evening nudges)',
-      'Instant WhatsApp / Telegram Alert (Sends inquiry details directly to my chat)',
-      'Quiet Mode (Zero notifications — everything stays strictly inside the app)'
+      'Instant Confirmation (Email/SMS receipt sent immediately after booking or order)',
+      'Scheduled Reminders (Push notification or SMS sent 24h & 1h before an event/appointment)',
+      'New Lead / Order Alert to Owner (Instant ping via WhatsApp, Telegram, or Email when someone submits)',
+      'Status Update Alerts (Notify user when order/booking is accepted, ready, or completed)',
+      'Daily Activity Digest (Morning or evening recap of new entries and tasks)',
+      'No Notifications Needed (Completely quiet mode — no alerts sent)'
     ]
   },
   {
     id: 'payments_and_monetization',
     chapter: 4,
     chapterTitle: 'Access & Launch',
-    number: 10,
+    number: 12,
     title: 'Does this app need to accept payments, or is it completely free?',
     guidance: 'Let us know if you plan to charge users, connect mobile payment gateways, or keep it 100% free.',
     chips: [
@@ -162,7 +194,7 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     id: 'visual_peg_and_timeline',
     chapter: 4,
     chapterTitle: 'Access & Launch',
-    number: 11,
+    number: 13,
     title: 'What visual pegs or reference apps match your vision, and what is your target launch timeline?',
     guidance: 'Paste any link to a design peg you love (website, Dribbble, or Instagram), or tap a benchmark reference style below along with your target launch window.',
     chips: [
