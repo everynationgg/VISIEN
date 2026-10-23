@@ -57,13 +57,15 @@ export const ReviewDeck: React.FC<ReviewDeckProps> = ({
           )}
         </div>
 
-        {/* Card 2: Platform, Specs & User Journey */}
+        {/* Card 2: Platform, Specs & Flow */}
         <div className="visien-card review-card">
           <h3 className="card-section-title">Platform, Specs & Flow</h3>
           <p className="card-text"><strong>Target Platform:</strong> {brief.target_platform || brief.raw_json?.target_platform || 'iOS/Android & Web'}</p>
+          <p className="card-text"><strong>Access & Auth:</strong> {brief.auth_requirements || brief.raw_json?.auth_requirements || 'Standard secure access'}</p>
           <p className="card-text"><strong>Payments & Integrations:</strong> {brief.payments_integrations || brief.raw_json?.payments_integrations || 'Not specified'}</p>
+          <p className="card-text"><strong>Notifications & Alerts:</strong> {brief.notifications_channels || brief.raw_json?.notifications_channels || 'Not specified'}</p>
           <p className="card-text"><strong>Target Users:</strong> {brief.target_users || 'N/A'}</p>
-          <p className="card-text"><strong>Core User Journey:</strong> {brief.core_action || 'N/A'}</p>
+          <p className="card-text"><strong>Core User Flow:</strong> {brief.core_action || 'N/A'}</p>
         </div>
 
         {/* Card 3: Look, Feel & Aesthetics */}

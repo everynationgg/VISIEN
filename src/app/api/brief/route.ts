@@ -129,13 +129,28 @@ export async function POST(request: NextRequest) {
                 color: 0x7C3AED, // Violet
                 fields: [
                   {
-                    name: 'Core Action',
+                    name: 'Core Flow',
                     value: savedBrief.core_action || 'N/A',
                     inline: true,
                   },
                   {
                     name: 'Target Platform',
                     value: savedBrief.target_platform || 'iOS/Android & Web',
+                    inline: true,
+                  },
+                  {
+                    name: 'Auth & Access',
+                    value: savedBrief.auth_requirements || 'Standard / Guest',
+                    inline: true,
+                  },
+                  {
+                    name: 'Payments & Integrations',
+                    value: savedBrief.payments_integrations || 'Not specified',
+                    inline: true,
+                  },
+                  {
+                    name: 'Notifications',
+                    value: savedBrief.notifications_channels || 'Not specified',
                     inline: true,
                   },
                   {

@@ -2,9 +2,9 @@ import { QuestionDefinition } from './types';
 
 export const CHAPTERS = [
   { id: 1, title: 'Concept & Data Model', subtitle: 'App archetype, content & intake fields' },
-  { id: 2, title: 'User Flow & Back-Office', subtitle: 'Step-by-step flow & admin controls' },
+  { id: 2, title: 'User Flow, Platform & Back-Office', subtitle: 'Step-by-step flow, devices & admin controls' },
   { id: 3, title: 'Visuals & Palette', subtitle: 'Dark/light mode, color wheel & theme' },
-  { id: 4, title: 'Access & Launch', subtitle: 'Platform, auth, alerts, payments & design peg' },
+  { id: 4, title: 'Access & Launch', subtitle: 'Auth, alerts, payments & design peg' },
 ] as const;
 
 export const CORE_QUESTIONS: QuestionDefinition[] = [
@@ -54,11 +54,11 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     ]
   },
 
-  // Chapter 2: User Flow & Back-Office
+  // Chapter 2: User Flow, Platform & Back-Office
   {
     id: 'core_user_journey',
     chapter: 2,
-    chapterTitle: 'User Flow & Back-Office',
+    chapterTitle: 'User Flow, Platform & Back-Office',
     number: 4,
     title: 'What is the primary user flow from first tap to finish?',
     guidance: 'Walk me through the main user flow — from opening the app to completing the core action.',
@@ -70,10 +70,24 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     ]
   },
   {
+    id: 'target_platform',
+    chapter: 2,
+    chapterTitle: 'User Flow, Platform & Back-Office',
+    number: 5,
+    title: 'What devices and platforms should this app support at launch?',
+    guidance: 'This helps developers choose between a responsive web app (PWA) or native mobile apps published to the Apple App Store and Google Play.',
+    chips: [
+      'Responsive Web App / PWA (Runs smoothly on any phone, tablet, and desktop browser)',
+      'Native Mobile Apps (Published to Apple App Store & Google Play Store)',
+      'Both Responsive Web + Native Mobile Apps (Unified cross-platform build)',
+      'Tablet / Desktop First (Optimized for iPad kiosks, cashiers, or office workstations)'
+    ]
+  },
+  {
     id: 'admin_and_backoffice',
     chapter: 2,
-    chapterTitle: 'User Flow & Back-Office',
-    number: 5,
+    chapterTitle: 'User Flow, Platform & Back-Office',
+    number: 6,
     title: 'Do you need an admin dashboard or management panel to manage the app?',
     guidance: 'Tell us if you or your team need an admin interface to manage content, view submissions, and control settings, or if the app is self-contained.',
     chips: [
@@ -89,7 +103,7 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     id: 'theme_mode',
     chapter: 3,
     chapterTitle: 'Visuals & Palette',
-    number: 6,
+    number: 7,
     title: 'How should the interface feel on your eyes — Dark Mode, Light Mode, or Adaptive?',
     guidance: 'Think about how you and your users will view this app throughout the day and night.',
     chips: [
@@ -102,7 +116,7 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
     id: 'color_scheme_and_vibe',
     chapter: 3,
     chapterTitle: 'Visuals & Palette',
-    number: 7,
+    number: 8,
     title: 'What colors or visual vibe feel right for this app?',
     guidance: 'Use the interactive color wheel below to select up to 3 palette colors (Primary Accent, Background, and Highlight), or choose a signature preset.',
     chips: [
@@ -115,20 +129,6 @@ export const CORE_QUESTIONS: QuestionDefinition[] = [
   },
 
   // Chapter 4: Access & Launch
-  {
-    id: 'target_platform',
-    chapter: 4,
-    chapterTitle: 'Access & Launch',
-    number: 8,
-    title: 'What devices and platforms should this app support at launch?',
-    guidance: 'This helps developers choose between a responsive web app (PWA) or native mobile apps published to the Apple App Store and Google Play.',
-    chips: [
-      'Responsive Web App / PWA (Runs smoothly on any phone, tablet, and desktop browser)',
-      'Native Mobile Apps (Published to Apple App Store & Google Play Store)',
-      'Both Responsive Web + Native Mobile Apps (Unified cross-platform build)',
-      'Tablet / Desktop First (Optimized for iPad kiosks, cashiers, or office workstations)'
-    ]
-  },
   {
     id: 'access_and_auth',
     chapter: 4,

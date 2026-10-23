@@ -1285,15 +1285,17 @@ export default function AdminDashboardPage() {
                     </div>
 
                     <div className="brief-block">
-                      <h4>Platform & Integrations</h4>
+                      <h4>Platform, Access & Integrations</h4>
                       <p><strong>Target Platform:</strong> {selectedBrief.target_platform || selectedBrief.raw_json?.target_platform || 'iOS/Android & Web'}</p>
+                      <p><strong>Access & Auth:</strong> {selectedBrief.auth_requirements || selectedBrief.raw_json?.auth_requirements || 'Standard secure access'}</p>
                       <p><strong>Payments & Integrations:</strong> {selectedBrief.payments_integrations || selectedBrief.raw_json?.payments_integrations || 'Not specified'}</p>
+                      <p><strong>Notifications & Alerts:</strong> {selectedBrief.notifications_channels || selectedBrief.raw_json?.notifications_channels || 'Not specified'}</p>
                     </div>
 
                     <div className="brief-block">
-                      <h4>Target Users & Core Journey</h4>
+                      <h4>Target Users & Core Flow</h4>
                       <p><strong>Users:</strong> {selectedBrief.target_users || 'Not specified'}</p>
-                      <p><strong>Core Journey:</strong> {selectedBrief.core_action || 'Not specified'}</p>
+                      <p><strong>Core Flow:</strong> {selectedBrief.core_action || 'Not specified'}</p>
                     </div>
 
                     <div className="brief-block">
