@@ -41,13 +41,13 @@ export default function HomePage() {
 
         {/* Private Token Entry Box */}
         <div className="visien-card token-card">
-          <p className="token-label">Enter your session code, link, or client name</p>
+          <p className="token-label">Enter your 6-digit session code or invitation link</p>
           <p className="token-hint">Begin your discovery, resume where you left off, or track live status.</p>
           <form onSubmit={handleJoin} className="token-form">
             <input
               type="text"
               className="token-input"
-              placeholder="e.g. 929-909 or your name"
+              placeholder="e.g. 929-909"
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
               autoCorrect="off"

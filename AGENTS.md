@@ -19,8 +19,8 @@ not by how much code you write.
   (`schema.sql`), client/server Supabase instances (`src/lib/supabase.ts`), and database
   maintenance scripts in `scripts/`.
 - **AI Engine** — Google Gemini API (`@google/generative-ai`), dynamic multi-model failover tier
-  in `src/lib/gemini.ts` (`gemini-flash-lite-latest`, `gemini-3.5-flash`, `gemini-flash-latest`,
-  `gemini-3.5-flash-lite`, `gemini-3-flash-preview`, `gemini-2.5-flash`), relaxed safety settings
+  in `src/lib/gemini.ts` (`gemini-flash-lite-latest`, `gemini-2.5-flash-lite`, `gemini-flash-latest`,
+  `gemini-3-flash-preview`, `gemini-2.5-flash`), relaxed safety settings
   for commercial/diverse client domains, real-time discovery chat probing (`generateVisienResponse`),
   and comprehensive structured specification synthesis (`generateAppBrief`).
 - **Interactive Discovery Experience** — `src/components/`: Interactive Luminous Orb (`EnosOrb.tsx`),
@@ -28,8 +28,6 @@ not by how much code you write.
   Live Client Project Tracker (`ClientProjectTracker.tsx`), and Spec Review Deck (`ReviewDeck.tsx`).
 - **Audio Pipeline** — Web Audio recording in browser + Gemini multimodal voice transcription
   route (`src/app/api/transcribe/route.ts`).
-- **Alerts & Integrations** — Optional Discord webhook integration (`DISCORD_WEBHOOK_URL`) for real-time
-  lead submission and status notifications.
 
 ## 2. Subsystems (for context — don't restate this back to the user)
 

@@ -23,7 +23,6 @@ export function cleanTokenString(rawToken: string): string {
  * 2. Un-dashed 6-digit token (e.g. "929909" -> "929-909")
  * 3. Space-separated 6-digit token (e.g. "929 909" -> "929-909")
  * 4. Case-insensitive token match
- * 5. Client name match (e.g. "yog" or "yog test" -> matches session where client_name ILIKE "yog%")
  */
 export async function findSessionByTokenOrQuery(
   supabase: SupabaseClient,
@@ -32,41 +31,30 @@ export async function findSessionByTokenOrQuery(
   const clean = cleanTokenString(rawToken);
   if (!clean) return null;
 
-  // 1. Exact match on token
-  let { data: session } = await supabase
+  // Build candidate token variations (e.g., "929-909", "929909", "929 909")
+  const candidates = new Set<string>([clean]);
+
+  const digitsOnly = clean.replace(/[\s-]/g, '');
+  if (digitsOnly.length === 6 && /^\d{6}$/.test(digitsOnly)) {
+    candidates.add(`${digitsOnly.slice(0, 3)}-${digitsOnly.slice(3)}`);
+    candidates.add(digitsOnly);
+  }
+
+  if (clean.includes('-')) {
+    candidates.add(clean.replace(/-/g, ''));
+  }
+
+  // 1. Fast single query: match any normalized candidate token
+  const candidateList = Array.from(candidates);
+  const { data: session } = await supabase
     .from('sessions')
     .select('*')
-    .eq('token', clean)
+    .in('token', candidateList)
     .maybeSingle();
 
   if (session) return session;
 
-  // 2. Normalize 6-digit variations (e.g. "929909", "929 909")
-  const digitsOnly = clean.replace(/[\s-]/g, '');
-  if (digitsOnly.length === 6 && /^\d{6}$/.test(digitsOnly)) {
-    const withDash = `${digitsOnly.slice(0, 3)}-${digitsOnly.slice(3)}`;
-    const { data: dashMatch } = await supabase
-      .from('sessions')
-      .select('*')
-      .or(`token.eq.${withDash},token.eq.${digitsOnly}`)
-      .maybeSingle();
-
-    if (dashMatch) return dashMatch;
-  }
-
-  // 3. Check with-dash or without-dash if input had dashes
-  if (clean.includes('-')) {
-    const noDash = clean.replace(/-/g, '');
-    const { data: noDashMatch } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('token', noDash)
-      .maybeSingle();
-
-    if (noDashMatch) return noDashMatch;
-  }
-
-  // 4. Case-insensitive token search
+  // 2. Fallback: Case-insensitive token search
   const { data: ilikeTokenMatch } = await supabase
     .from('sessions')
     .select('*')

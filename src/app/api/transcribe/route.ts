@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { executeGeminiWithFailover, geminiSafetySettings } from '@/lib/gemini';
 
 const apiKey = process.env.GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey);
-const TRANSCRIPTION_MODELS = [
-  'gemini-flash-lite-latest',
-  'gemini-2.5-flash',
-  'gemini-flash-latest',
-];
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,36 +24,26 @@ export async function POST(request: NextRequest) {
     // Clean mime type (e.g. 'audio/webm;codecs=opus' -> 'audio/webm')
     const mimeType = rawMime.split(';')[0].trim();
 
-    let transcript = '';
-    let lastError = null;
-
-    for (const modelName of TRANSCRIPTION_MODELS) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent([
-          {
-            inlineData: {
-              mimeType: mimeType || 'audio/webm',
-              data: base64Audio,
-            },
+    const transcript = await executeGeminiWithFailover(async (modelName) => {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        safetySettings: geminiSafetySettings,
+      });
+      const result = await model.generateContent([
+        {
+          inlineData: {
+            mimeType: mimeType || 'audio/webm',
+            data: base64Audio,
           },
-          {
-            text: 'Transcribe the spoken speech from this audio recording into clean text. Return ONLY the transcribed words. Do NOT add any preamble, notes, formatting, or quotes. If the audio is silent or unintelligible, return an empty string.',
-          },
-        ]);
-        transcript = result.response.text().trim();
-        break;
-      } catch (err: any) {
-        console.warn(`Transcription model ${modelName} failed (${err?.message?.slice(0, 100)}), trying next...`);
-        lastError = err;
-      }
-    }
+        },
+        {
+          text: 'Transcribe the spoken speech from this audio recording into clean text. Return ONLY the transcribed words. Do NOT add any preamble, notes, formatting, or quotes. If the audio is silent or unintelligible, return an empty string.',
+        },
+      ]);
+      return result.response.text().trim();
+    });
 
-    if (!transcript && lastError) {
-      throw lastError;
-    }
-
-    return NextResponse.json({ transcript });
+    return NextResponse.json({ transcript: transcript || '' });
   } catch (error: any) {
     console.error('Transcription API error:', error);
     return NextResponse.json(
