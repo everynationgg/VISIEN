@@ -75,31 +75,5 @@ export async function findSessionByTokenOrQuery(
 
   if (ilikeTokenMatch) return ilikeTokenMatch;
 
-  // 5. Client name fallback (e.g. user entered "yog" or "yog test")
-  // Only search if the string has at least 2 characters and doesn't look like an arbitrary uuid
-  if (clean.length >= 2) {
-    // Try exact client_name match first (case-insensitive)
-    const { data: exactNameMatch } = await supabase
-      .from('sessions')
-      .select('*')
-      .ilike('client_name', clean)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (exactNameMatch) return exactNameMatch;
-
-    // Try partial client_name match (e.g. "yog" matches "yog test")
-    const { data: partialNameMatch } = await supabase
-      .from('sessions')
-      .select('*')
-      .ilike('client_name', `%${clean}%`)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (partialNameMatch) return partialNameMatch;
-  }
-
   return null;
 }

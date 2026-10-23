@@ -7,7 +7,7 @@ export const maxDuration = 60; // Allow ample time for Gemini synthesis
 
 export async function POST(request: NextRequest) {
   try {
-    const { token, feedbackNotes } = await request.json();
+    const { token, feedbackNotes, finalize = false } = await request.json();
 
     if (!token) {
       return NextResponse.json({ error: 'Token is required' }, { status: 400 });
@@ -20,6 +20,28 @@ export async function POST(request: NextRequest) {
 
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
+    // Check if brief already exists
+    const { data: existingBrief } = await supabase
+      .from('app_briefs')
+      .select('*')
+      .eq('session_id', session.id)
+      .maybeSingle();
+
+    // If brief already exists and client is confirming without any feedback notes, skip re-synthesis!
+    if (existingBrief && !feedbackNotes?.trim()) {
+      if (finalize) {
+        await supabase
+          .from('sessions')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', session.id);
+      }
+      return NextResponse.json({ brief: existingBrief });
     }
 
     // 2. Fetch full transcript
@@ -50,7 +72,7 @@ export async function POST(request: NextRequest) {
       messages
     );
 
-    // 4. Upsert into app_briefs table
+    // 4. Upsert into app_briefs table (clean field mappings without prepending duplicate prefixes)
     const briefRecord = {
       session_id: session.id,
       client_name: session.client_name || 'Client',
@@ -59,23 +81,17 @@ export async function POST(request: NextRequest) {
       vision_summary: briefData.vision_summary || '',
       problem_statement: briefData.problem_statement || '',
       target_users: briefData.target_users || '',
-      moment_of_use: briefData.target_platform
-        ? `Platform: ${briefData.target_platform}${briefData.moment_of_use ? ` | ${briefData.moment_of_use}` : ''}`
-        : (briefData.moment_of_use || ''),
+      moment_of_use: briefData.moment_of_use || '',
       first_screen_experience: briefData.first_screen_experience || '',
       core_action: briefData.core_action || '',
       expected_outcome: briefData.expected_outcome || '',
       emotional_ux_feel: briefData.emotional_ux_feel || [],
       visual_direction: briefData.visual_direction || '',
       anti_patterns: briefData.anti_patterns || [],
-      business_impact: briefData.payments_integrations
-        ? `Payments & Integrations: ${briefData.payments_integrations}${briefData.business_impact ? ` | ${briefData.business_impact}` : ''}`
-        : (briefData.business_impact || ''),
+      business_impact: briefData.business_impact || '',
       current_workflow: briefData.current_workflow || '',
       v1_essential_features: briefData.v1_essential_features || [],
-      future_horizon: briefData.target_timeline
-        ? `Launch Target: ${briefData.target_timeline}${briefData.future_horizon ? ` | Horizon: ${briefData.future_horizon}` : ''}`
-        : (briefData.future_horizon || ''),
+      future_horizon: briefData.future_horizon || '',
       target_platform: briefData.target_platform || null,
       user_roles: briefData.user_roles || null,
       auth_requirements: briefData.auth_requirements || null,
@@ -104,77 +120,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: briefSaveError.message }, { status: 500 });
     }
 
-    // 5. Update session status to Completed
-    await supabase
-      .from('sessions')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', session.id);
-
-    // 6. Optional: Trigger Discord webhook alert to Every Nation GG
-    const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL;
-    if (discordWebhookUrl) {
-      try {
-        await fetch(discordWebhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            embeds: [
-              {
-                title: `✨ New VISIEN App Brief: ${savedBrief.project_title}`,
-                description: `**Client:** ${session.client_name}${session.company ? ` (${session.company})` : ''}\n**Vision:** ${savedBrief.vision_summary}`,
-                color: 0x7C3AED, // Violet
-                fields: [
-                  {
-                    name: 'Core Flow',
-                    value: savedBrief.core_action || 'N/A',
-                    inline: true,
-                  },
-                  {
-                    name: 'Target Platform',
-                    value: savedBrief.target_platform || 'iOS/Android & Web',
-                    inline: true,
-                  },
-                  {
-                    name: 'Auth & Access',
-                    value: savedBrief.auth_requirements || 'Standard / Guest',
-                    inline: true,
-                  },
-                  {
-                    name: 'Payments & Integrations',
-                    value: savedBrief.payments_integrations || 'Not specified',
-                    inline: true,
-                  },
-                  {
-                    name: 'Notifications',
-                    value: savedBrief.notifications_channels || 'Not specified',
-                    inline: true,
-                  },
-                  {
-                    name: 'Target Budget / Range',
-                    value: savedBrief.budget_range || 'Flexible',
-                    inline: true,
-                  },
-                  {
-                    name: 'Infrastructure Choice',
-                    value: savedBrief.infrastructure_preference || 'ENGG Managed',
-                    inline: true,
-                  },
-                ],
-                footer: {
-                  text: 'VISIEN by Every Nation GG',
-                },
-                timestamp: new Date().toISOString(),
-              },
-            ],
-          }),
-        });
-      } catch (webhookErr) {
-        console.warn('Discord webhook notification failed (non-critical):', webhookErr);
-      }
+    // 5. Update session status to Completed only when finalized
+    if (finalize) {
+      await supabase
+        .from('sessions')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', session.id);
     }
 
     return NextResponse.json({ brief: savedBrief });

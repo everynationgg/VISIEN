@@ -12,12 +12,10 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 // High-availability Gemini model tier with automatic failover
 export const GEMINI_CHAT_MODELS = [
-  'gemini-flash-lite-latest',
-  'gemini-3.5-flash',
-  'gemini-flash-latest',
-  'gemini-3.5-flash-lite',
-  'gemini-3-flash-preview',
   'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
 ];
 
 // Relaxed safety settings for business discovery sessions (e.g. adult wellness, nightlife, medical clinics)

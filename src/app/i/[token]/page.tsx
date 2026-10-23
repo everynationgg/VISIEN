@@ -466,17 +466,15 @@ export default function DiscoverySessionPage() {
       setOnboardingStep('chat');
 
       if (messages.length === 0) {
-        const firstQ = CORE_QUESTIONS[0];
-        const greeting = `Hi ${nameInput.trim() || 'there'}! I'm VISIEN, your AI guide from Every Nation GG.\n\nI'll help you shape your app idea into a ready-to-build blueprint — no technical background needed.\n\nLet's start here: ${firstQ.title}`;
-        const initMsg: Message = {
-          id: 'init-1',
-          session_id: data.session?.id || '',
-          role: 'enos',
-          content: greeting,
-          created_at: new Date().toISOString(),
-        };
-        setMessages([initMsg]);
-        setNewestEnosId('init-1');
+        // Fetch freshly seeded initial greeting from database
+        const freshRes = await fetch(`/api/session/${targetToken}`);
+        if (freshRes.ok) {
+          const freshData = await freshRes.json();
+          if (freshData.messages && freshData.messages.length > 0) {
+            setMessages(freshData.messages);
+            setNewestEnosId(freshData.messages[freshData.messages.length - 1].id);
+          }
+        }
       }
     } catch (err) {
       console.error(err);
@@ -509,7 +507,7 @@ export default function DiscoverySessionPage() {
       let res = await fetch('/api/brief', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: session?.token || token }),
+        body: JSON.stringify({ token: session?.token || token, finalize: false }),
       });
 
       // Quick automatic retry if network or cold-start hiccup occurred
@@ -518,7 +516,7 @@ export default function DiscoverySessionPage() {
         res = await fetch('/api/brief', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: session?.token || token }),
+          body: JSON.stringify({ token: session?.token || token, finalize: false }),
         });
       }
 
@@ -629,6 +627,9 @@ export default function DiscoverySessionPage() {
     } catch (err) {
       console.error(err);
       setOrbState('idle');
+      // Rollback temporary message bubble and restore user input so text is not lost
+      setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
+      setInputText(userMessageContent);
     } finally {
       setIsSending(false);
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -643,8 +644,9 @@ export default function DiscoverySessionPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          token,
+          token: session?.token || token,
           feedbackNotes: notes,
+          finalize: true,
         }),
       });
       if (res.status === 404) {

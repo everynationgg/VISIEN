@@ -289,7 +289,7 @@ export function ClientProjectTracker({
         </div>
 
         {/* Action Needed Banner: Remaining questions */}
-        {(session.current_question_index ?? 0) < CORE_QUESTIONS.length && (
+        {session.status !== 'completed' && (session.current_question_index ?? 0) < CORE_QUESTIONS.length && (
           <div className="visien-card pending-action-card">
             <div className="pending-action-left">
               <div className="pending-icon-wrap">

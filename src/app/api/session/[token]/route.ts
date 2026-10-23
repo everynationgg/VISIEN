@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { findSessionByTokenOrQuery } from '@/lib/sessionResolver';
+import { CORE_QUESTIONS } from '@/lib/questions';
 
 export async function GET(
   request: NextRequest,
@@ -30,6 +31,31 @@ export async function GET(
       console.error('Error fetching messages:', messagesError);
     }
 
+    let sessionMessages = messages || [];
+
+    // Automatically seed initial greeting if session is started but transcript has no records yet
+    if (sessionMessages.length === 0 && session.status !== 'not_started') {
+      const firstQ = CORE_QUESTIONS[0];
+      const clientName = session.client_name || 'there';
+      const greeting = `Hi ${clientName}! I'm VISIEN, your AI guide from Every Nation GG.\n\nI'll help you shape your app idea into a ready-to-build blueprint — no technical background needed.\n\nLet's start here: ${firstQ.title}`;
+
+      const { data: seededMsg } = await supabase
+        .from('messages')
+        .insert({
+          session_id: session.id,
+          role: 'enos',
+          content: greeting,
+          question_id: firstQ.id,
+          is_follow_up: false,
+        })
+        .select()
+        .single();
+
+      if (seededMsg) {
+        sessionMessages = [seededMsg];
+      }
+    }
+
     // 3. Fetch app brief if available
     const { data: briefData } = await supabase
       .from('app_briefs')
@@ -40,7 +66,7 @@ export async function GET(
 
     return NextResponse.json({
       session,
-      messages: messages || [],
+      messages: sessionMessages,
       brief,
     });
   } catch (error: any) {
@@ -114,11 +140,25 @@ export async function PATCH(
   }
 }
 
+const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || 'enen';
+
+function isAuthorized(request: NextRequest): boolean {
+  const headerKey = request.headers.get('x-admin-key');
+  if (headerKey && headerKey === ADMIN_PASSCODE) return true;
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.replace(/^Bearer\s+/i, '') === ADMIN_PASSCODE) return true;
+  return false;
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { token: string } }
 ) {
   try {
+    if (!isAuthorized(request)) {
+      return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 401 });
+    }
+
     const { token } = params;
     if (!token) {
       return NextResponse.json({ error: 'Token is required' }, { status: 400 });
