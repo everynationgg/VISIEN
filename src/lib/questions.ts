@@ -1,209 +1,206 @@
 import { QuestionDefinition } from './types';
 
 export const CHAPTERS = [
-  { id: 1, title: 'Concept & Data Model', subtitle: 'App archetype, content & intake fields' },
-  { id: 2, title: 'User Flow, Platform & Back-Office', subtitle: 'Step-by-step flow, devices & admin controls' },
-  { id: 3, title: 'Visuals & Palette', subtitle: 'Dark/light mode, color wheel & theme' },
-  { id: 4, title: 'Access & Launch', subtitle: 'Auth, alerts, payments & design peg' },
+  { id: 1, title: 'The Big Idea', subtitle: 'Your vision, who it’s for & what people see' },
+  { id: 2, title: 'How It Works', subtitle: 'The customer journey, devices & managing things' },
+  { id: 3, title: 'The Look & Vibe', subtitle: 'Light, dark, brand colors & visual style' },
+  { id: 4, title: 'Launch & Access', subtitle: 'Sign-in, alerts, payments & launch timing' },
 ] as const;
 
 export const CORE_QUESTIONS: QuestionDefinition[] = [
-  // Chapter 1: Concept & Data Model
+  // Chapter 1: The Big Idea
   {
     id: 'app_archetype',
     chapter: 1,
-    chapterTitle: 'Concept & Data Model',
+    chapterTitle: 'The Big Idea',
     number: 1,
-    title: 'What type of application are we building?',
-    guidance: 'Tell me about the core purpose of your app! Tap the archetype that best matches your vision, or describe your unique idea in your own words.',
+    title: 'Tell me about the app you have in mind! What do you want it to do?',
+    guidance: 'Share the heart of your project in your own words, or tap an idea below that matches what you want to create.',
     chips: [
-      'Service Booking & Appointments (Salons, consulting, clinics, coaching, creative studios)',
-      'Catalog & Ordering (Food menu, boutique, digital products, merchandise)',
-      'Personal Utility & Tracker (Workouts, habits, finance, private vault)',
-      'Community & Member Hub (Directory, events, courses, private resources)',
-      'Lead Capture & Client Intake (Inquiries, quotes, client questionnaires)'
+      'Booking & Appointments (Salons, clinics, coaching, photo studios, private sessions)',
+      'Menu, Shop & Ordering (Cafes, bakeries, boutique goods, merchandise)',
+      'Daily Tracker & Habits (Workouts, routines, personal finance, private notes)',
+      'Community & Member Hub (Events, club directory, exclusive content, groups)',
+      'Client Quotes & Inquiries (Project intake, lead inquiries, client estimates)'
     ]
   },
   {
     id: 'content_and_records',
     chapter: 1,
-    chapterTitle: 'Concept & Data Model',
+    chapterTitle: 'The Big Idea',
     number: 2,
-    title: 'What core information, data, or content will the app display or manage?',
-    guidance: 'Tell us what data lives in the app — or let us know if this is a utility/tool that does not need to store database records.',
+    title: 'What are the main things people will see and browse when they open the app?',
+    guidance: 'Think about what you want on display — like photos, item listings, schedules, or if it’s a quick tool with no saved catalog.',
     chips: [
-      'No saved database records (Pure utility, calculator, or static showcase tool)',
-      'Services & Time Slots (Duration, pricing, staff assignment, available hours)',
-      'Product Items & Variants (Photos, descriptions, categories, stock levels)',
-      'Client Inquiries & Intake Submissions (Contact info, custom answers, attached files)',
-      'Daily Personal Logs & Metrics (Timestamps, categories, ratings, notes)'
+      'A clean showcase tool / calculator (No saved catalog needed)',
+      'Services, time slots & pricing (Duration, available hours, booking slots)',
+      'Product items & photos (Descriptions, flavors or sizes, stock levels)',
+      'Customer inquiries & requests (Client contact info, custom notes, attachments)',
+      'Personal daily logs & entries (Timestamps, categories, personal progress)'
     ]
   },
   {
     id: 'intake_and_submission',
     chapter: 1,
-    chapterTitle: 'Concept & Data Model',
+    chapterTitle: 'The Big Idea',
     number: 3,
-    title: 'What information or details must users submit when taking action?',
-    guidance: 'Think about what you need to collect from users before an appointment, order, or record is confirmed.',
+    title: 'When someone takes action or places a request, what details do you need from them?',
+    guidance: 'Think about what information makes an order or booking complete before you can confirm it.',
     chips: [
-      'Basic Contact & Time Only (Name, phone/email, chosen date & time slot)',
-      'Custom Intake Questionnaire (Multiple-choice questions, custom text fields, intake notes)',
-      'Media & Document Uploads (Photos, ID verification, reference images, PDF files)',
-      'Instant 1-Tap Quick Entry (No complex forms — quick tap to log, save, or complete)'
+      'Basic contact & time only (Name, phone/email, chosen date & time slot)',
+      'A short custom form (Answers to specific questions, preferences, special notes)',
+      'Photo or document uploads (Reference pictures, receipts, ID photos)',
+      'Instant 1-tap action (No long forms — just tap to confirm or log)'
     ]
   },
 
-  // Chapter 2: User Flow, Platform & Back-Office
+  // Chapter 2: How It Works
   {
     id: 'core_user_journey',
     chapter: 2,
-    chapterTitle: 'User Flow, Platform & Back-Office',
+    chapterTitle: 'How It Works',
     number: 4,
-    title: 'What is the primary user flow from first tap to finish?',
-    guidance: 'Walk me through the main user flow — from opening the app to completing the core action.',
+    title: 'Walk me through the journey: what does someone do from the moment they open the app to the finish?',
+    guidance: 'Picture a customer using it on their phone — what steps do they take to get what they came for?',
     chips: [
-      'Browse services → Pick date/time slot → Fill intake details → Instant confirmation',
-      'Browse catalog → Add to cart → Checkout / Order slip generated',
-      'Open app → Tap (+) button → Quick entry flow → Personal charts update',
-      'Explore community/directory → View detail profile → Connect, chat, or RSVP'
+      'Browse options → Pick a date & time → Enter details → Instant confirmation',
+      'Browse items → Add to bag → Enter delivery/pickup info → Send order',
+      'Open app → Tap (+) to log an entry → Instantly see personal stats update',
+      'Explore directory/events → View details → Connect or RSVP'
     ]
   },
   {
     id: 'target_platform',
     chapter: 2,
-    chapterTitle: 'User Flow, Platform & Back-Office',
+    chapterTitle: 'How It Works',
     number: 5,
-    title: 'What devices and platforms should this app support at launch?',
-    guidance: 'This helps developers choose between a responsive web app (PWA) or native mobile apps published to the Apple App Store and Google Play.',
+    title: 'Where do you picture people using this app the most?',
+    guidance: 'Tell us where your customers or team will open it so our team shapes the perfect layout.',
     chips: [
-      'Responsive Web App / PWA (Runs smoothly on any phone, tablet, and desktop browser)',
-      'Native Mobile Apps (Published to Apple App Store & Google Play Store)',
-      'Both Responsive Web + Native Mobile Apps (Unified cross-platform build)',
-      'Tablet / Desktop First (Optimized for iPad kiosks, cashiers, or office workstations)'
+      'On their phones (Seamless on iPhones & Androids right from a link)',
+      'Phone apps installed on the home screen',
+      'Everywhere (Phones, tablets, and desktop computers)',
+      'Countertop tablet or desktop first (Optimized for store counters, iPad kiosks, or office desks)'
     ]
   },
   {
     id: 'admin_and_backoffice',
     chapter: 2,
-    chapterTitle: 'User Flow, Platform & Back-Office',
+    chapterTitle: 'How It Works',
     number: 6,
-    title: 'Do you need an admin dashboard or management panel to manage the app?',
-    guidance: 'Tell us if you or your team need an admin interface to manage content, view submissions, and control settings, or if the app is self-contained.',
+    title: 'How would you and your team like to manage things behind the scenes?',
+    guidance: 'Tell us how you want to review incoming requests, update prices or items, and manage your day-to-day.',
     chips: [
-      'Yes — Dedicated Web Admin Dashboard (View calendar, accept/reschedule bookings, export CSV)',
-      'Yes — In-App Admin Mode (Switch to admin mode directly on mobile to update listings & prices)',
-      'No Admin Dashboard Needed (Send submissions directly to Email, WhatsApp, or Google Calendar)',
-      'No — Single-user private tool (No admin or client separation needed)'
+      'A dedicated web dashboard on my computer (View calendar, manage bookings, download reports)',
+      'A private owner mode on my phone (Update prices, photos, and items on the fly)',
+      'Send everything directly to my WhatsApp, Email, or Google Calendar',
+      'Just for me (Personal tool, no separate management screen needed)'
     ]
   },
 
-  // Chapter 3: Visuals & Palette
+  // Chapter 3: The Look & Vibe
   {
     id: 'theme_mode',
     chapter: 3,
-    chapterTitle: 'Visuals & Palette',
+    chapterTitle: 'The Look & Vibe',
     number: 7,
-    title: 'How should the interface feel on your eyes — Dark Mode, Light Mode, or Adaptive?',
-    guidance: 'Think about how you and your users will view this app throughout the day and night.',
+    title: 'How should the app feel on your eyes — bright and fresh, or sleek and dark?',
+    guidance: 'Think about the ambiance of your brand and what fits your customers best.',
     chips: [
-      'Sleek Dark Mode (Immersive deep blacks, charcoal panels, glowing accents)',
-      'Crisp Light Mode (Bright, clean, high-contrast, airy white/slate)',
-      'Adaptive Auto-Switch (Automatically follows device system theme)'
+      'Bright & airy Light Mode (Clean, crisp, inviting white and soft tones)',
+      'Sleek & modern Dark Mode (Deep rich blacks, charcoal panels, glowing accents)',
+      'Smart Auto-Switch (Automatically follows the user’s phone settings)'
     ]
   },
   {
     id: 'color_scheme_and_vibe',
     chapter: 3,
-    chapterTitle: 'Visuals & Palette',
+    chapterTitle: 'The Look & Vibe',
     number: 8,
-    title: 'What colors or visual vibe feel right for this app?',
-    guidance: 'Use the interactive color wheel below to select up to 3 palette colors (Primary Accent, Background, and Highlight), or choose a signature preset.',
+    title: 'What colors or visual personality fit your brand?',
+    guidance: 'Use the interactive color wheel below to pick up to 3 colors, or choose a signature style you love.',
     chips: [
-      'Obsidian Gold (#0B0B0F & #D4AF37 with Apple/Linear crisp borders)',
-      'Cyber Violet (#0A0A0E & #7C3AED with electric neon glow)',
-      'Minimalist Slate (#0F172A & #3B82F6 Notion/Craft tech style)',
-      'Warm Contemporary (#FAF8F5 & #EA580C Airbnb earthy style)',
-      '✨ Curate for me (Let Every Nation GG designers craft the best luxury look)'
+      'Warm & Earthy (Soft creams, terracotta, bakery & lifestyle aesthetic)',
+      'Obsidian & Gold (Deep luxury black with rich metallic gold accents)',
+      'Cyber & Electric (Neon violet and bold high-energy glow)',
+      'Clean Minimalist Slate (Crisp modern tech look with subtle cool blues)',
+      '✨ Curate for me (Let Every Nation GG designers craft the perfect palette)'
     ]
   },
 
-  // Chapter 4: Access & Launch
+  // Chapter 4: Launch & Access
   {
     id: 'access_and_auth',
     chapter: 4,
-    chapterTitle: 'Access & Launch',
+    chapterTitle: 'Launch & Access',
     number: 9,
-    title: 'Do users need to create an account or sign in to use the app, and who is allowed access?',
-    guidance: 'Tell us whether the app should be open to the public without login, require an account (Google, Apple, Email), or be restricted to private invitees.',
+    title: 'Do people need an account to use the app, or can they jump right in?',
+    guidance: 'Think about how easy you want it to be for first-time visitors versus returning members.',
     chips: [
-      'Instant Guest Access (No sign-up or password required — open to anyone)',
-      '1-Tap Social Sign-In (Google & Apple ID — fast, frictionless access)',
-      'Standard Email & Password / OTP (User profile with saved history and preferences)',
-      'Private & Invite-Only (Locked to specific team members or users with an access code)',
-      'Multi-Role Access (Different access levels for Customers, Staff, and Admins)'
+      'Open to anyone freely (Instant guest access, no passwords needed)',
+      'Fast 1-tap sign-in with Google or Apple ID',
+      'Email & phone sign-in (Saves order history and member profile)',
+      'Private & invite-only (Restricted to approved members or VIP passcodes)',
+      'Different roles (Separate access for Customers, Staff, and Owner)'
     ]
   },
   {
     id: 'integrations_and_hardware',
     chapter: 4,
-    chapterTitle: 'Access & Launch',
+    chapterTitle: 'Launch & Access',
     number: 10,
-    title: 'Does the app need to connect with external tools, APIs, or device features?',
-    guidance: 'Specify any third-party services (like Google Maps, WhatsApp, Google Sheets, or CRM) or device hardware (Camera/QR, GPS, Bluetooth printer) developers should integrate.',
+    title: 'Does the app need to connect with any special tools, maps, or phone features?',
+    guidance: 'Mention any everyday apps or phone features you’d love it to work with.',
     chips: [
-      'Maps & Location (Google Maps, GPS routing, address autocomplete)',
-      'Camera & QR Scanner (Barcode scanning, photo proof upload, QR check-in)',
-      'Spreadsheet & File Sync (Sync data with Google Sheets, Airtable, or CSV export)',
-      'Chat & Messaging API (WhatsApp, Telegram, or SMS gateway)',
-      'No External Integrations (Self-contained app with no third-party APIs)'
+      'Maps & Location (Show store location, delivery distance, or Google Maps)',
+      'Camera & Photo upload (Upload reference photos, receipts, or QR check-in)',
+      'Spreadsheet sync (Automatically sync with Google Sheets or CSV)',
+      'Chat & messaging (WhatsApp, Viber, or SMS alerts)',
+      'Keep it self-contained (No external connections needed)'
     ]
   },
   {
     id: 'notifications_and_alerts',
     chapter: 4,
-    chapterTitle: 'Access & Launch',
+    chapterTitle: 'Launch & Access',
     number: 11,
-    title: 'What specific notifications should trigger, and when should they send?',
-    guidance: 'Select the triggers that fit your workflow — like instant booking confirmations, reminder alerts before scheduled events, owner submission alerts, or daily summaries.',
+    title: 'What reminders or alerts would keep everything running smoothly?',
+    guidance: 'Pick what keeps you and your customers on the same page.',
     chips: [
-      'Instant Confirmation (Email/SMS receipt sent immediately after booking or order)',
-      'Scheduled Reminders (Push notification or SMS sent 24h & 1h before an event/appointment)',
-      'New Lead / Order Alert to Owner (Instant ping via WhatsApp, Telegram, or Email when someone submits)',
-      'Status Update Alerts (Notify user when order/booking is accepted, ready, or completed)',
-      'Daily Activity Digest (Morning or evening recap of new entries and tasks)',
-      'No Notifications Needed (Completely quiet mode — no alerts sent)'
+      'Instant confirmation (Receipt sent immediately via Email or SMS)',
+      'Scheduled reminder (Friendly alert sent 24 hours & 1 hour before an appointment/pickup)',
+      'Instant ping to owner (Instant ping via WhatsApp, Telegram, or Email on new submission)',
+      'Order status updates (Notify customer when order is accepted, baking, or ready)',
+      'No alerts needed (Quiet mode)'
     ]
   },
   {
     id: 'payments_and_monetization',
     chapter: 4,
-    chapterTitle: 'Access & Launch',
+    chapterTitle: 'Launch & Access',
     number: 12,
-    title: 'Does this app need to accept payments, or is it completely free?',
-    guidance: 'Let us know if you plan to charge users, connect mobile payment gateways, or keep it 100% free.',
+    title: 'How will you handle payments, or is the app 100% free?',
+    guidance: 'Let us know how money changes hands in your workflow.',
     chips: [
       '100% Free (No payments or checkout needed)',
-      'Philippine Mobile Payments (GCash, Maya, Bank Transfer slip upload)',
-      'Card / Online Payments (Stripe, Credit/Debit card)',
-      'Pay in-person / Cash on Delivery',
-      'Recurring membership / subscription paywall'
+      'GCash, Maya & Bank Transfer (Customer uploads a screenshot of their payment slip)',
+      'Credit & Debit cards online (Card checkout via Stripe or PayMongo)',
+      'Pay in person / Cash on Delivery',
+      'Recurring membership or subscription pass'
     ]
   },
   {
     id: 'visual_peg_and_timeline',
     chapter: 4,
-    chapterTitle: 'Access & Launch',
+    chapterTitle: 'Launch & Access',
     number: 13,
-    title: 'What visual pegs or reference apps match your vision, and what is your target launch timeline?',
-    guidance: 'Paste any link to a design peg you love (website, Dribbble, or Instagram), or tap a benchmark reference style below along with your target launch window.',
+    title: 'Any favorite websites or apps you love the look of, and when would you love to launch?',
+    guidance: 'Share links to designs you admire (websites, Instagram, or Dribbble), or pick a benchmark style along with your target launch window.',
     chips: [
-      'Peg: Like Apple & Linear • Lean MVP in 2–4 weeks',
-      'Peg: Like Apple & Linear • Polished V1 in 1–2 months',
-      'Peg: Like Notion & Craft • Lean MVP in 2–4 weeks',
-      'Peg: Like Airbnb / Contemporary • Polished V1 in 1–2 months',
-      'Peg: Like Spotify / Immersive • Polished V1 in 1–2 months',
-      '✨ Curate design peg & milestones for me'
+      'Clean, boutique & warm • Quick launch in 2–4 weeks',
+      'Sleek, premium & polished • Launch in 1–2 months',
+      'Modern & minimalist like Apple or Notion • Launch in 1–2 months',
+      '✨ Curate the design style & timeline milestones for me'
     ]
   }
 ];
