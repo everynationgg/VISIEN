@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { generateAppBriefFromTranscript } from '@/lib/gemini';
 import { findSessionByTokenOrQuery } from '@/lib/sessionResolver';
+import { sendDiscordBriefNotification } from '@/lib/discord';
 
 export const maxDuration = 60; // Allow ample time for Gemini synthesis
 
@@ -39,6 +40,10 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', session.id);
+
+      // Trigger Discord notification on finalization
+      await sendDiscordBriefNotification(existingBrief);
+
       return NextResponse.json({ brief: existingBrief });
     }
 
@@ -128,6 +133,9 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', session.id);
+
+      // Trigger Discord notification on finalization
+      await sendDiscordBriefNotification(savedBrief);
     }
 
     return NextResponse.json({ brief: savedBrief });

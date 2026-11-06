@@ -2,54 +2,34 @@ name: Supabase Database Keep-Alive
 
 on:
   schedule:
-    # Runs at 00:00 UTC every 3 days (well within Supabase's 7-day inactivity pause window)
-    - cron: '0 0 */3 * *'
+    # Runs every 48 hours at 08:00 UTC (well within Supabase's 7-day inactivity pause window)
+    - cron: '0 8 */2 * *'
   workflow_dispatch: # Allows 1-click manual trigger from GitHub Actions UI
 
 jobs:
   keep-alive:
-    name: Ping Supabase
+    name: Ping Supabase Database
     runs-on: ubuntu-latest
     steps:
       - name: Send keep-alive query to Supabase
         env:
-          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
-          APP_URL: ${{ secrets.APP_URL }}
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://qeinjomcfirfbtzesafo.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_3gB7NWi2Eu6ubbj44oNx0A_BxBZnUG-' }}
         run: |
-          echo "Starting keep-alive ping..."
+          echo "Pinging Supabase PostgREST API directly to execute real PostgreSQL query..."
           
-          # Priority 1: Ping Supabase directly if secrets are configured in GitHub
-          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
-            echo "Pinging Supabase REST API directly..."
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-              -H "apikey: $SUPABASE_ANON_KEY" \
-              -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-              "$SUPABASE_URL/rest/v1/sessions?select=id&limit=1")
-            
-            echo "Supabase response status: $HTTP_CODE"
-            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-              echo "✅ Supabase database query succeeded! Inactivity timer reset."
-              exit 0
-            else
-              echo "⚠️ Direct Supabase query returned status $HTTP_CODE"
-            fi
-          fi
+          HTTP_CODE=$(curl -s -o response.json -w "%{http_code}" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/sessions?select=id&limit=1")
+          
+          echo "Supabase response status: $HTTP_CODE"
+          echo "Response body: $(cat response.json)"
 
-          # Priority 2: Ping live app /api/health if APP_URL is provided
-          if [ -n "$APP_URL" ]; then
-            echo "Pinging application health endpoint at $APP_URL/api/health..."
-            HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL/api/health")
-            echo "Health endpoint response status: $HEALTH_CODE"
-            if [ "$HEALTH_CODE" -ge 200 ] && [ "$HEALTH_CODE" -lt 300 ]; then
-              echo "✅ Health endpoint ping succeeded! Database query executed."
-              exit 0
-            fi
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "✅ Supabase database query executed successfully! Inactivity timer reset."
+            exit 0
+          else
+            echo "❌ Supabase query failed with status $HTTP_CODE"
+            exit 1
           fi
-
-          # Fallback message if secrets haven't been added yet
-          if [ -z "$SUPABASE_URL" ] && [ -z "$APP_URL" ]; then
-            echo "ℹ️ Note: If you want GitHub Actions to ping Supabase directly, add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your GitHub Repo -> Settings -> Secrets and variables -> Actions."
-            echo "ℹ️ Note: Vercel Cron is already running natively via vercel.json to keep Supabase active."
-          fi
-
