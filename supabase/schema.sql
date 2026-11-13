@@ -115,4 +115,19 @@ create policy "Allow token read access to session"
   on public.sessions for select
   using (true); -- Read allows token validation; updates/inserts are handled server-side via service_role
 
+-- 5. KEEPALIVE HEARTBEAT TABLE (Single-row write heartbeat to prevent Supabase free-tier pausing)
+create table if not exists public.keepalive (
+  id int primary key default 1 check (id = 1),
+  last_ping_at timestamptz not null default now(),
+  ping_count bigint not null default 0,
+  source text
+);
+
+alter table public.keepalive enable row level security;
+
+drop policy if exists "Allow public read of keepalive" on public.keepalive;
+create policy "Allow public read of keepalive"
+  on public.keepalive for select
+  using (true); -- Writes are performed server-side via service_role only
+
 -- Service role has full permissions for backend API routes

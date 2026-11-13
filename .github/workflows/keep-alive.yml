@@ -2,34 +2,71 @@ name: Supabase Database Keep-Alive
 
 on:
   schedule:
-    # Runs every 48 hours at 08:00 UTC (well within Supabase's 7-day inactivity pause window)
-    - cron: '0 8 */2 * *'
+    # Runs every 6 hours (4x/day) for reliable Postgres activity well within Supabase's 7-day window
+    - cron: '0 */6 * * *'
   workflow_dispatch: # Allows 1-click manual trigger from GitHub Actions UI
 
 jobs:
   keep-alive:
-    name: Ping Supabase Database
+    name: Ping App Health & Supabase Database
     runs-on: ubuntu-latest
     steps:
-      - name: Send keep-alive query to Supabase
+      - name: Ping live /api/health endpoint (multi-table reads + single-row heartbeat write)
+        id: health
+        env:
+          APP_URL: ${{ secrets.APP_URL || 'https://visien-gray.vercel.app' }}
+        run: |
+          echo "Pinging $APP_URL/api/health?source=github-actions..."
+          HTTP_CODE=$(curl -sS --retry 3 --retry-delay 5 -o health.json -w "%{http_code}" \
+            "$APP_URL/api/health?source=github-actions" || echo "000")
+
+          echo "Health endpoint status: $HTTP_CODE"
+          cat health.json 2>/dev/null || true
+          echo ""
+
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "health_ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "health_ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ping Supabase PostgREST directly
+        id: direct
         env:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://qeinjomcfirfbtzesafo.supabase.co' }}
           SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_3gB7NWi2Eu6ubbj44oNx0A_BxBZnUG-' }}
         run: |
-          echo "Pinging Supabase PostgREST API directly to execute real PostgreSQL query..."
-          
-          HTTP_CODE=$(curl -s -o response.json -w "%{http_code}" \
+          echo "Pinging Supabase PostgREST directly..."
+          # Only pass Authorization: Bearer for legacy JWT keys; sb_publishable_ keys use apikey only
+          AUTH_ARGS=()
+          if [[ "$SUPABASE_ANON_KEY" == eyJ* ]]; then
+            AUTH_ARGS=(-H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          fi
+
+          HTTP_CODE=$(curl -sS --retry 3 --retry-delay 5 -o response.json -w "%{http_code}" \
             -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            "$SUPABASE_URL/rest/v1/sessions?select=id&limit=1")
-          
-          echo "Supabase response status: $HTTP_CODE"
-          echo "Response body: $(cat response.json)"
+            "${AUTH_ARGS[@]}" \
+            "$SUPABASE_URL/rest/v1/sessions?select=id&limit=1" || echo "000")
+
+          echo "Supabase PostgREST status: $HTTP_CODE"
+          cat response.json 2>/dev/null || true
+          echo ""
 
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            echo "✅ Supabase database query executed successfully! Inactivity timer reset."
+            echo "direct_ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "direct_ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify at least one keep-alive path succeeded
+        run: |
+          if [ "${{ steps.health.outputs.health_ok }}" = "true" ] && [ "${{ steps.direct.outputs.direct_ok }}" = "true" ]; then
+            echo "✅ Both app health heartbeat and direct Supabase query succeeded!"
+            exit 0
+          elif [ "${{ steps.health.outputs.health_ok }}" = "true" ] || [ "${{ steps.direct.outputs.direct_ok }}" = "true" ]; then
+            echo "⚠️ One keep-alive path succeeded (health=${{ steps.health.outputs.health_ok }}, direct=${{ steps.direct.outputs.direct_ok }})."
             exit 0
           else
-            echo "❌ Supabase query failed with status $HTTP_CODE"
+            echo "❌ Both keep-alive checks failed!"
             exit 1
           fi

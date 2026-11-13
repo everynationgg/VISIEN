@@ -61,6 +61,19 @@ async function runMigration() {
       alter table public.app_briefs add column if not exists concept_image_url text;
       alter table public.app_briefs add column if not exists concept_image_feedback text;
       alter table public.app_briefs add column if not exists concept_image_notes text;
+
+      -- Single-row keepalive heartbeat table (additive, prevents Supabase inactivity pause)
+      create table if not exists public.keepalive (
+        id int primary key default 1 check (id = 1),
+        last_ping_at timestamptz not null default now(),
+        ping_count bigint not null default 0,
+        source text
+      );
+      alter table public.keepalive enable row level security;
+      drop policy if exists "Allow public read of keepalive" on public.keepalive;
+      create policy "Allow public read of keepalive"
+        on public.keepalive for select
+        using (true);
     `;
 
     console.log('Running migration SQL...');
